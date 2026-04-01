@@ -26,7 +26,17 @@
                   "x402/cross-chain"
                 ]
               },
-              "signing/index",
+              {
+                "group": "Signing",
+                "root": "signing/index",
+                "pages": [
+                  "signing/ethereum-signature",
+                  "signing/solana-signature",
+                  "signing/bitcoin-signature",
+                  "signing/morpheum-signature",
+                  "signing/quantum-threat"
+                ]
+              },
               "agent-wallet",
               "mwvm"
             ]

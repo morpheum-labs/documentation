@@ -1,10 +1,10 @@
 ---
 title: "Signing"
 sidebarTitle: "Signing"
-description: "Cryptographic signing across EVM, Solana, Bitcoin, Morpheum, and the quantum threat landscape for key management and agent workflows"
+description: "Cryptographic signing across EVM, Solana, Bitcoin, Morpheum-native hybrid (ECDSA_MLDSA44), and quantum risk—key management and agent workflows"
 ---
 
-**Signing** is how agents, wallets, and protocols **authorize** actions: transfers, contract calls, API payments, and identity proofs. Different stacks use different curves, encodings, and replay rules. This page ties together **EVM**, **Solana**, **Bitcoin**, **Morpheum-native** signing, and **quantum-related** risks at a conceptual level—enough to orient engineers and operators without replacing chain-specific specs.
+**Signing** is how agents, wallets, and protocols **authorize** actions: transfers, contract calls, API payments, and identity proofs. Different stacks use different curves, encodings, and replay rules. This page ties together **EVM**, **Solana**, **Bitcoin**, **Morpheum-native** signing (including **hybrid** classical plus post-quantum schemes where the stack defines them), and **quantum-related** risks at a conceptual level—enough to orient engineers and operators without replacing chain-specific specs.
 
 ---
 
@@ -20,6 +20,8 @@ Ethereum-compatible chains overwhelmingly use **ECDSA on secp256k1**. A private 
 
 For Morpheum products that touch **stablecoins**, **x402**, or **HTTP-quoted payments**, EVM signing is often the layer that turns a server’s payment quote into an **authorizing signature** verifiable by a facilitator or contract.
 
+For a deeper walkthrough of **message hashing (EIP-191, EIP-712)**, **ECDSA on secp256k1**, and **lifecycle** from signed intent to chain effect, see [Ethereum (EVM) signatures](/signing/ethereum-signature).
+
 ---
 
 ## Solana signing
@@ -32,6 +34,8 @@ Solana uses **Ed25519** for account keys. **Transactions** are a compact binary 
 - **Fee payers** can be separate from instruction signers (sponsorship), which is relevant for **gasless** or **relayed** agent flows when policy allows.
 
 Where Morpheum integrates **Solana** rails (e.g. low-latency settlement), signing is **Ed25519-over-transaction-message**, not secp256k1—wallet and KMS integrations must be chain-aware.
+
+For message construction, **fee payer** vs **signer** roles, **Ed25519** over the transaction blob, and **lifecycle** through broadcast and confirmation, see [Solana signatures](/signing/solana-signature).
 
 ---
 
@@ -46,37 +50,46 @@ Bitcoin signing is **ECDSA (and in modern wallets often Schnorr for Taproot)** o
 
 For **cross-chain** or **multi-asset** agents, Bitcoin signing is a distinct skill from EVM: same curve in many cases, **different** message formats and lifecycle.
 
+For **sighash** construction, **SegWit** and **Taproot** (ECDSA vs BIP340 Schnorr), **PSBT**, and the **UTXO**-centric signing lifecycle, see [Bitcoin signatures](/signing/bitcoin-signature).
+
 ---
 
 ## Morpheum signing
 
-**Morpheum-native** signing refers to how Morpheum’s stack—**agent runtimes**, **gateways**, **wallets**, and **policy**—ties cryptographic authorization to **product flows**: paid APIs (e.g. **x402**), **agent identity**, and **execution** on supported networks.
+**Morpheum-native** signing refers to how Morpheum’s stack—**agent runtimes**, **gateways**, **wallets**, and **policy**—ties cryptographic authorization to **product flows**: paid APIs (e.g. **x402**), **agent identity**, and **execution** on supported networks. The platform also defines **Morpheum-specific** verification paths, including a **hybrid** **`ECDSA_MLDSA44`** construction that pairs **ECDSA on secp256k1** with **ML-DSA-44** (NIST FIPS 204) for classical compatibility and **post-quantum** resilience—details, address formats, and verification rules live on the dedicated page below.
 
 **Conceptual pillars**
 
 - **Network-aware**: The same agent may need **EVM**-style signatures for one rail and **Solana**-style for another; configuration and key material should reflect that split.
+- **Native vs rail**: **Chain-facing** work may use standard **EVM / Solana / Bitcoin** signing; **Morpheum-native** flows may use the hybrid scheme and Morpheum **address** semantics where the product requires it.
 - **Policy-bound**: Signing should be gated by **allowlists**, **spend caps**, **time bounds**, and **human-in-the-loop** rules where the deployment requires it—not only by “who holds the key.”
 - **Operational clarity**: Separate **cold / warm / hot** key roles, **audit trails** of what was signed, and integration with **MCP** or **HTTP** surfaces so operators can reason about failures.
 
 Exact wire formats and endpoints evolve with releases; treat this section as **architecture**, not a substitute for the latest **API** and **wallet** documentation.
 
+For **`ECDSA_MLDSA44`**, Morpheum **addresses**, verification, delegation, and the **layered model** (chain crypto vs orchestration) with **x402** and **agent wallet** ties, see [Morpheum signatures](/signing/morpheum-signature).
+
 ---
 
 ## Quantum threat
 
-**Cryptographically relevant quantum computers**, if realized at scale, would threaten widely deployed **public-key** schemes: **ECDSA** and **Schnorr** on secp256k1, **Ed25519**, and **ECDH** key agreement based on elliptic curves are **not** considered quantum-safe against Shor-class attacks. **Hash-based** constructions used in Bitcoin and many protocols fare better against Shor but still need **larger keys** and **careful migration**; **symmetric** crypto (e.g. AES-256) is often cited with larger safety margins than typical public-key sizes, but **key exchange** and **signatures** remain the urgent research and standards area.
+**Cryptographically relevant quantum computers**, if realized at scale, would threaten widely deployed **public-key** schemes used in Web3 (**ECDSA**, **Schnorr**, **Ed25519**, **ECDH** on elliptic curves). **Post-quantum cryptography (PQC)**, **hybrid** deployments, and **algorithm agility** are the long-term answer; **signing keys** and **agents** that must stay trustworthy for years need explicit planning.
 
-**What teams should track**
-
-- **PQC standards** (e.g. NIST post-quantum selections) and **hybrid** deployments that combine classical and post-quantum algorithms during transition.
-- **Long-lived identities**: Keys that must remain trustworthy for **years** should plan for **algorithm agility**—protocols and **HSM / KMS** vendors that can **rotate** signature schemes without breaking the whole system.
-- **Custody and agents**: Autonomous signers are **high-value** targets; quantum risk adds urgency to **minimal exposure** of signing keys and **clear migration** stories for on-chain assets.
-
-This is a **moving** research and standards landscape; product decisions should follow **organization risk** assessments and **ecosystem** timelines, not blog summaries alone.
+For a structured risk overview, **what to track** (NIST PQC, vendor roadmaps, on-chain governance), and **limits of this documentation**, see [Quantum threat to signatures](/signing/quantum-threat).
 
 ---
 
 ## See also
+
+**Signing guides** (same order as the sidebar)
+
+- [Ethereum (EVM) signatures](/signing/ethereum-signature) — EIP-191, EIP-712, transactions, and lifecycle
+- [Solana signatures](/signing/solana-signature) — Ed25519, transaction messages, fee payer, and confirmation
+- [Bitcoin signatures](/signing/bitcoin-signature) — sighash, SegWit, Taproot, PSBT, UTXO lifecycle
+- [Morpheum signatures](/signing/morpheum-signature) — `ECDSA_MLDSA44` hybrid, addresses, and product integration
+- [Quantum threat to signatures](/signing/quantum-threat) — PQC, Shor/Grover context, and operational tracking
+
+**Related product docs**
 
 - [Morpheum x402](/x402) — HTTP-native payments and signing in payment headers
 - [MCP](/mcp) — tooling surfaces that may trigger signed actions

@@ -1,0 +1,157 @@
+---
+title: "Quantum threat to signatures"
+sidebarTitle: "Quantum threat"
+description: "How cryptographically relevant quantum computers could affect ECDSA, Schnorr, Ed25519, and ECDH—including recent Google Quantum AI resource estimates, correcting misconceptions about Bitcoin and Ethereum, and what teams should track for PQC and agent key custody"
+---
+
+## Overview
+
+This page is **not** a physics tutorial. It states the **consensus cryptographic risk model** that security teams use when planning around **cryptographically relevant quantum computers** (CRQCs): machines large and stable enough to run **Shor’s** and **Grover’s** algorithms at scales that threaten today’s deployed public-key sizes.
+
+**Important nuance:** Quantum computing is a credible **long-term** threat to both **Bitcoin** and **Ethereum**, but it does **not** “break the address” in a naive sense (e.g. deriving a private key from a **hashed** address alone with no further structure). The main risk is that a sufficiently powerful quantum computer could **derive a private key from a visible public key**, especially with **Shor’s algorithm**, which would let an attacker **steal funds from outputs or accounts where the public key is already exposed**—not from every untouched address at once. Industry analyses from firms such as [Deloitte](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html) and [Chainalysis](https://www.chainalysis.com/blog/quantum-computing-crypto-security/) frame the problem around **exposed keys** and **reuse**, not a single headline that “all addresses are broken.”
+
+**Morpheum and most blockchains today** rely on the same mainstream primitives as the rest of the industry: **ECDSA** and **Schnorr** on **secp256k1**, **Ed25519**, **ECDH**-style key agreement on elliptic curves, and **hashes** (e.g. SHA-256, Keccak) inside protocols. **Signatures** and **key establishment** are the urgent migration surface; **symmetric** encryption often has a simpler story (larger keys help against Grover) but still needs **protocol** updates when paired with broken public-key layers.
+
+Product decisions should follow your **organization’s risk** process and **ecosystem** roadmaps—not alarmist headlines or a single vendor’s blog.
+
+---
+
+## What is vulnerable
+
+**Bitcoin** is most exposed when a **public key has already been revealed on-chain**, for example in older **pay-to-public-key (P2PK)** outputs or when **addresses are reused** so the key is visible from a prior spend. [Deloitte’s analysis](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html) notes that the public-key relationship is only **partially** impacted until the public key is known from a prior spend. [Chainalysis](https://www.chainalysis.com/blog/quantum-computing-crypto-security/) similarly highlights **early address types** and **reused addresses** as higher risk, while **modern address designs** often keep the public key hidden until spending. Some post‑2026 commentary cites on the order of **~6.9 million BTC** (roughly **one‑third** of supply) sitting in **reused or otherwise exposed** wallets as **theoretically higher** risk under future Shor‑class assumptions—treat such figures as **illustrative** and **methodology‑dependent**, not a live risk dashboard.
+
+**Ethereum** has a different exposure profile: its **account model** tends to encourage **address reuse**. [Deloitte’s Ethereum-focused analysis](https://www.deloitte.com/nl/en/services/risk-advisory/perspectives/quantum-risk-to-the-ethereum-blockchain.html) reported that **over 65%** of Ether was in **quantum-exposed** addresses at the time of that study—**higher** than the Bitcoin estimate they compared against. (Figures are **point-in-time** and depend on methodology; treat them as **illustrative**, not a live dashboard.)
+
+---
+
+## How the attack works
+
+The basic path is: **public key becomes visible on-chain** → a quantum-capable attacker runs **Shor’s algorithm** (or related approaches) → **private key is recovered** → the attacker **signs** a transaction to move funds. The danger is therefore not merely “cracking an address string,” but **breaking the elliptic-curve discrete-log assumption** for **ownership** once the **public key** is exposed. See [Deloitte’s discussion](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html) of this model.
+
+---
+
+## Recent research: Google Quantum AI (March 2026) {#google-quantum-ai-2026}
+
+A **March 31, 2026** paper from **Google Quantum AI** (reported co-authors include **Justin Drake**, Ethereum Foundation, and **Dan Boneh**, Stanford) updates **resource** estimates for attacking **elliptic-curve discrete logarithms**, with **headline** figures often quoted for **ECDSA on secp256k1**—the stack **Bitcoin** and **Ethereum** use for standard EOAs and many contracts. **Ed25519** and other curves use **different** parameters but remain in the same **Shor‑class** planning bucket for **signature** migration. **This page does not mirror the full paper**; retrieve the **authoritative PDF** and any errata from [Google Research](https://research.google/) or the authors’ institutional pages.
+
+**What the paper does *not* claim**
+
+- It does **not** say a **cryptographically relevant quantum computer (CRQC)** exists **today** or that a break is **imminent**.
+- It does **not** replace protocol‑level roadmaps for **Bitcoin** or **Ethereum** with Google’s internal IT deadlines.
+
+**Key quantitative takeaways (as reported)**
+
+- Breaking ECDSA/secp256k1–style discrete log could require **fewer than ~500,000 physical qubits**—on the order of a **~20×** reduction vs earlier **multi‑million** qubit **rough** estimates. Constants depend on **error rates**, **architecture**, and **algorithm** details; treat the headline as **planning‑input**, not a specification.
+- In a **hypothetical** attack on an **already exposed public key** (for example during a **Bitcoin** transaction broadcast window), a sufficiently capable machine could **in principle** recover a private key in about **~9 minutes** in **some** models—**under** Bitcoin’s **~10 minute** average block interval—yielding on the order of **~41%** “race” success probability in **those** models. This illustrates **why exposure timing matters**; it is **not** a statement that current hardware can perform the attack.
+
+**Organizational vs chain timelines**
+
+- Google sets **2029** as an **internal** target to migrate **its own** infrastructure (authentication, digital signatures, etc.) to **post‑quantum cryptography (PQC)**—a **prudent enterprise** horizon, **not** a public‑blockchain protocol deadline.
+- The paper and related commentary emphasize that **hardware** progress has been **faster** than some older projections, **lowering** the apparent resource bar and **compressing** planning assumptions—while many **independent** analyses still often discuss **material** risk on **mid‑2030s** or longer horizons depending on assumptions.
+
+**Alignment with this document**
+
+The paper **reinforces** the model used here: risk concentrates on **exposed public keys** and **reuse**, not on deriving keys from **address hashes alone**. It strengthens the case for **algorithm agility**, **hybrid** classical+PQC transitions, **key rotation**, **vendor/HSM** roadmaps, and **on‑chain** upgrade planning—especially for **long‑lived** keys in **cold storage**, **multisig**, **DAOs**, and **agent** signers.
+
+---
+
+## Bitcoin vs Ethereum (exposure at a glance)
+
+| Network | Main exposure | Why it matters |
+| --- | --- | --- |
+| **Bitcoin** | Old **P2PK** outputs, **reused** addresses, any output that already **revealed a public key** ([HRF](https://hrf.org/latest/the-quantum-threat-to-bitcoin/)) | Funds can be stolen if the public key is exposed long enough for a quantum attack to succeed ([HRF](https://hrf.org/latest/the-quantum-threat-to-bitcoin/)) |
+| **Ethereum** | **Reused** accounts and contexts where the **public key** is exposed; account model increases **reuse** ([Deloitte](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html)) | Deloitte’s analysis found a **larger share** of Ether in exposed addresses than Bitcoin in their comparison ([Deloitte](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html)) |
+
+---
+
+## What is at risk (primitives)
+
+| Class | Examples in Web3 | Typical quantum threat model |
+| --- | --- | --- |
+| **Elliptic-curve discrete log** | ECDSA, Schnorr (secp256k1), Ed25519 | **Shor-class** attacks break classical hardness assumptions; **public keys** and **signatures** tied to those keys are in scope once CRQCs exist at scale. |
+| **ECDH / key agreement** | TLS-like patterns, some wallet backups | Same curve groups; **shared secrets** derived from classical ECDH may be recoverable. |
+| **Hashes** | SHA-256, Keccak in PoW, Merkle trees | **Grover** speeds up search; protocols often plan **larger** hash outputs or different structures rather than assuming SHA-256 “breaks” overnight. |
+| **Symmetric ciphers** | AES-256 in storage | Grover effectively halves **effective** symmetric key length in some threat models; **256-bit** keys are often cited with more margin than **128-bit** public-key equivalents. |
+
+**Bitcoin** and many systems also use **hash-based** patterns (script hashes, Merkle trees) that age differently than raw ECDSA on long-lived keys—but **migration** still matters when **addresses** or **scripts** assume classical-only primitives end-to-end.
+
+---
+
+## Time horizon
+
+There is **no single consensus** on **when** a CRQC might threaten deployed curves at scale. **Google’s March 2026** work (see [above](#recent-research-google-quantum-ai-march-2026)) is one prominent data point that **lowers** some **resource** estimates and **pulls forward** **organizational** PQC deadlines—without asserting that **today’s** machines can break **production** networks. Other industry commentary still often frames the threat as **long‑term to medium‑term**, with **mid‑2030s** or later appearing in some **independent** analyses. The practical takeaway unchanged: ecosystems need **migration paths** and **operational** readiness, not panic. For additional accessible context, see e.g. [Binance Square](https://www.binance.com/en/square/post/307457189833233).
+
+---
+
+## What should be done
+
+- **Bitcoin:** The best **near-term** defense is to **avoid address reuse** and move **vulnerable** coins to **fresh addresses** before a public key is exposed on-chain where policy allows. See [HRF](https://hrf.org/latest/the-quantum-threat-to-bitcoin/).
+- **Ethereum:** The **long-term** fix is **protocol-level** adoption of **post-quantum** cryptography (and orderly **migration**), because today’s **public-key** assumptions may not survive large-scale quantum adversaries. See [HRF](https://hrf.org/latest/the-quantum-threat-to-bitcoin/) and [Deloitte](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html) for the high-level case.
+
+---
+
+## What happens first
+
+The most likely **first** targets are addresses whose **public keys are already visible** on-chain, because Shor-class attacks can then target the **discrete-log** problem and produce a signing key. **Google’s March 2026** paper gives a **worked hypothetical** for that situation—**~9 minute** runtime **vs** **~10 minute** average block time and **~41%** success in **some** race models—see [Recent research: Google Quantum AI (March 2026)](#google-quantum-ai-2026). Third‑party reporting (e.g. [AMBCrypto](https://ambcrypto.com/crypto-security-faces-a-20x-faster-quantum-threat-google-warns/), [Blockhead](https://www.blockhead.co/2026/04/01/quantum-threat-to-bitcoin-just-got-more-urgent/)) may summarize the same themes; always **verify** numbers against the **primary** paper and your risk model.
+
+---
+
+## If nothing changes
+
+Without upgrades, the threat can move from “theoretical” toward **systemic** concern: **Bitcoin** would face theft risk concentrated in **reused** or **exposed-key** funds; **Ethereum** remains **especially** exposed in models with heavy **reuse**. Over time, **confidence** in both networks could weaken if users believe large holdings might become **stealable** once quantum hardware matures. See [CoinMarketTrace](https://coinmarketrace.com/post-quantum-cryptography-and-blockchain-security/) for a general discussion of PQC and blockchain security.
+
+---
+
+## Likely consequences (high level)
+
+- **Theft** of vulnerable coins and tokens from **exposed** addresses ([Chainalysis](https://www.chainalysis.com/blog/quantum-computing-crypto-security/)).
+- **Emergency migrations** to new cryptography, which can be **disruptive** and **expensive** ([DIG.watch](https://dig.watch/updates/quantum-threat-weaken-cryptocurrency-encryption)).
+- **Market volatility** if the threat is perceived as **near-term** rather than staged ([Forbes](https://www.forbes.com/sites/bernardmarr/2025/06/12/will-quantum-computing-kill-bitcoin/)).
+- **Uneven losses**, with older Bitcoin outputs and heavily reused Ethereum accounts often facing **higher** relative risk ([Deloitte](https://www.deloitte.com/nl/en/services/consulting-risk/perspectives/quantum-risk-to-the-ethereum-blockchain.html)).
+
+---
+
+## Bottom line
+
+**No immediate “crypto crack”** on live networks: **current** quantum hardware is **not** at the **scale** or **stability** required for Shor-class breaks against **256‑bit** curve sizes in **production**. At the same time, **revised** resource estimates and **enterprise** targets such as Google’s **2029** PQC migration goal **accelerate** **planning** urgency for **Bitcoin**, **Ethereum**, **Morpheum**, and adjacent stacks: **hybrid** schemes, **rotation**, **minimized** public-key exposure, and **ecosystem** upgrades should move from “someday” to **active** roadmaps.
+
+If the ecosystem does **not** update in time, the outcome is still unlikely to be “every address breaks overnight,” but rather a growing **drainable-funds** problem that can become a **trust** crisis: the longer **migration** is delayed, the more **value** may sit in forms that quantum-capable attackers could eventually exploit. See [a16z crypto](https://a16zcrypto.com/posts/article/quantum-computing-misconceptions-realities-blockchains-planning-migrations/) on misconceptions, realities, and planning.
+
+---
+
+## Why it matters for signing and agents
+
+- **Long-lived keys**: Cold keys, **multisig** quorums, and **DAO** identities that must stay valid for **years** need **algorithm agility** and **rotation** plans.
+- **Autonomous signers**: **Agents** and **hot wallets** should **minimize exposure** of private material, **scope** keys, and **monitor** standards.
+- **Hybrid deployments**: Many enterprises plan **transition** periods where **classical** and **post-quantum** algorithms coexist—**HSMs**, **KMS**, and protocols must support that without breaking compatibility.
+
+---
+
+## What teams should track
+
+1. **NIST and other PQC standards** — Post-quantum **signature** and **KEM** schemes; **final** specs, **reference** implementations, and **profile** choices (sizes, timing side-channels).
+2. **Hybrid protocols** — Classical + PQC for **TLS**, **VPNs**, and **custom** chains; understand **failure** modes if one side is misconfigured.
+3. **Vendor roadmaps** — **HSM**, **KMS**, and **wallet** vendors that publish **migration** paths for signing algorithms.
+4. **On-chain governance** — **Hard forks** or upgrades that introduce new **verification** paths or account types for **chain-wide** PQC—follow your networks’ **research** forums and **core dev** calls.
+
+---
+
+## What this page does **not** do
+
+- It does **not** predict **when** a CRQC will exist.
+- It does **not** replace **audit**, **threat modeling**, or **compliance** requirements for your jurisdiction.
+- It does **not** endorse every **headline** or **single-study** estimate; compare **primary** sources and **ecosystem** technical discussion.
+- It does **not** specify Morpheum **wire formats** for PQC; those will ship with product and **release** documentation.
+
+---
+
+## See also
+
+- [Google Research](https://research.google/) — locate the **March 31, 2026** Google Quantum AI publication on cryptocurrency / blockchain-relevant quantum analysis (confirm title and version on the official listing)
+- [NIST Post-Quantum Cryptography](https://csrc.nist.gov/projects/post-quantum-cryptography) — standards process and selected algorithms
+- [Signing overview](/signing) — EVM, Solana, Bitcoin, Morpheum signing context
+- [Ethereum (EVM) signatures](/signing/ethereum-signature) — ECDSA / secp256k1 usage
+- [Solana signatures](/signing/solana-signature) — Ed25519 usage
+- [Bitcoin signatures](/signing/bitcoin-signature) — ECDSA / Schnorr usage
+- [Morpheum signatures](/signing/morpheum-signature) — policy and orchestration for agents
+- [Agent wallet](/agent-wallet) — custody patterns for automated signers
