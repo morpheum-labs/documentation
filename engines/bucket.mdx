@@ -1,0 +1,117 @@
+---
+title: "Bucket (margin engine)"
+sidebarTitle: "Bucket"
+description: "What traders get from Morpheum’s bucket model: clearer risk, capital efficiency, multi-bucket hedging, and fewer common DEX margin pitfalls."
+---
+
+## What traders get from buckets
+
+A **bucket** is your **margin account** on Morpheum: one place that holds your collateral, ties your open positions together, and drives liquidation and PnL for that slice of your trading. The engine exists so those mechanics are **predictable** and **fast**—not so you have to think about internal modules.
+
+**You see the upside in day-to-day trading:**
+
+1. **Choose how risk is bundled** — Open an **isolated** bucket when you want losses capped to that bucket’s collateral, without spilling into the rest of your account. Use a **cross** bucket when you want **one pool of collateral** behind several positions in the same quote, so margin can work **across legs** instead of locking the same capital again and again. Modes are fixed at creation, so your risk profile does not change under you without you choosing it.
+
+2. **Make more of your collateral (cross mode)** — With **portfolio-style** margin and correlation-aware treatment, cross buckets aim for materially **higher capital efficiency** (on the order of **30–70%** less redundant margin versus treating every position on its own in typical designs). That means **more notional per dollar posted** when the book allows—without abandoning a rigorous margin model.
+
+3. **Fewer nasty surprises on deposits** — Funding a bucket is built around **atomic steps**: create and fund together, and cross-asset deposits either **complete fully** (escrow, route, credit) or **do not land at all**. You avoid half-funded states where your account looks wrong until someone runs a repair job.
+
+4. **Clearer health and faster feedback** — Margin checks run **before** risky actions finalize. If a deposit, leverage change, or transfer would leave you invalid, the operation fails **up front** instead of you discovering it only when a liquidation fires. That supports **bots and manual traders** who need deterministic “yes/no” on whether an action is allowed.
+
+5. **Liquidations you did not trigger yourself** — The protocol does not let traders **self-liquidate** to game others. Authorized risk paths trigger liquidation; the bucket **carries out** closes and settlements. That is aimed at **fairness** and reducing griefing, while separate systems handle auctions and insurance **outside** the core margin container so those policies can evolve without rewriting your account logic.
+
+6. **Speed that matches serious trading** — Bucket state is on a **hot path** next to matching: margin updates stay in step with fills, reads stay **very fast** for positions and health, and streams can push PnL and bucket updates at **high sustained rates**. In practice that means **responsive** order and risk workflows, **low-latency** automation, and **live** dashboards—not a margin layer that lags the book.
+
+---
+
+## Overview
+
+A **bucket** is Morpheum’s **immutable-quote margin container** for perpetual-style flow: it holds **collateral**, scopes **positions** and **PnL** to a single bucket identity, and lines up with the **CLOB** (your fills), **risk** (margin requirements and when liquidation **starts**), **bank** (moving funds between spot and margin), and **oracles** (prices for health and cross-asset funding).
+
+Matching, funding rates, and mark-price feeds live in their own parts of the stack. The bucket focuses on **your margin account**: opening and funding it, moving collateral, orchestrating cross-quote deposits, updating positions and leverage as you trade, and **executing** liquidation steps when the risk layer instructs—so your account state stays **consistent** even under heavy load.
+
+**Design principle:** The bucket engine is **purpose-built**, **state-of-the-art** margin **infrastructure-as-a-service**—a dedicated primitive so margin stays composable, explicit, and fast at venue scale.
+
+---
+
+## Isolated vs cross: pick what fits your style
+
+Modes are chosen **when you create** the bucket and do not change later—so you always know the rules.
+
+| | **Isolated** | **Cross** |
+|---|--------------|-----------|
+| **Best for** | Limiting loss to one book; simple “this trade only” risk | Running several positions in the **same quote** with shared collateral |
+| **Risk shape** | Typically **one main position** per bucket; **no spillover** to other buckets | **Many positions**; margin looks at the **portfolio**, not each leg in isolation |
+| **Capital** | Straightforward: what you put in is what is at stake for that bucket | **Higher efficiency** when legs offset under the model—**more capacity** from the same collateral when conditions allow |
+
+---
+
+## Pro traders: long and short in different buckets (institutional hedging)
+
+**Professional and institutional** desks often need **long** and **short** risk kept **distinct**—not blended into one net book where attribution and limits get murky. Buckets support that directly: you can run **multiple buckets** under the same master relationship and **route each order** to the bucket that should carry that leg. In practice that means you can hold **virtual** long and **virtual** short sleeves in **separate buckets**—for example a **long** book in one bucket and a **short** hedge in another—without spinning up separate legal entities or arbitrary wallet sprawl.
+
+That pattern fits **institutional hedging** workflows: **pair** and **basis** trades, perp vs spot overlays, desk-level hedges, and **strategy silos** where risk officers want **per-bucket** margin, PnL, and liquidation boundaries. Each bucket stays **ring-fenced**, so a stress move on one leg does not silently **contaminate** the other’s collateral accounting, while automation and reporting can still treat the set of buckets as one **firm-level** program. Where portfolio netting is desired instead, **cross** buckets remain available for **efficient** shared collateral across correlated legs in the same quote.
+
+---
+
+## Common DEX pain points—and what buckets are built to avoid
+
+Many decentralized venues **inherit** margin patterns that work for simple retail flow but create **hidden risk**, **ambiguous state**, or **unfair** liquidation dynamics. The bucket engine is **purpose-built** to **not** copy those failure modes: it **prevents** several classes of issues by design and **reduces** others by separating concerns (margin container vs matching vs auctions vs insurance).
+
+| What often goes wrong elsewhere | How buckets address it |
+|--------------------------------|-------------------------|
+| **Lazy or implicit margin accounts** — “First deposit creates your account,” which obscures ownership, complicates audits, and leaves odd edge states. | **Explicit creation only** — no bucket exists until you create it; funding fails clearly if the container is missing. |
+| **One net book for everything** — All positions net into a single blob; hard to isolate a hedge leg, a strategy, or a loss cap. | **Isolated and cross modes**, plus **multiple buckets**, so you can **separate** books when you need clean sleeves or institutional hedging. |
+| **Half-applied deposits** — Cross-asset or routed funding lands **partially**, or spot moves while margin does not, until repaired. | **Atomic** create-and-fund and **all-or-nothing** cross-quote paths — either the full operation succeeds or **nothing** inconsistent remains on-chain. |
+| **Surprise invalidity** — Leverage or transfer succeeds, then you discover you were already unhealthy under new prices. | **Pre-health checks** before state changes finalize — you get a **clear reject** when an action would break rules. |
+| **Self-triggered or gameable liquidations** — Traders can sometimes fire liquidations to harm others or extract rent. | **No self-liquidation** — only **authorized risk / governance** paths trigger liquidation **execution**; the bucket **carries out** closes, not the user as a weapon. |
+| **Margin layer lagging the book** — Matching is fast but margin and PnL updates feel **asynchronous** or slow, breaking automation. | **Hot-path** margin next to the **CLOB**, **fast reads**, and **high-throughput** streams so **positions and health** keep pace with fills. |
+| **Monolithic “do everything” margin modules** — Auction clocks, insurance, and account logic tangled together; policy changes require risky forks. | **Narrow core** — bucket **executes** margin and liquidation **steps**; **auctions** and **insurance** live in **separate** modules so product policy can evolve **without** rewriting your account primitive. |
+
+This is not a guarantee against market or smart-contract risk; it is a **deliberate** set of choices so the **margin layer** does not reproduce the **weakest** patterns common across **general-purpose** DEX stacks.
+
+---
+
+## Everyday flows (what you actually do)
+
+1. **Create and fund** — You open a bucket in your chosen mode and meet minimum initial margin in **one go**.
+
+2. **Move collateral** — Add or remove same-quote funds between spot and margin, or move margin between compatible buckets, with health updating immediately.
+
+3. **Fund from another asset** — Cross-quote deposits follow a single guarded path: price the route, respect slippage and oracle bands, then credit your bucket—**or revert entirely** if something fails.
+
+4. **Trade** — Your orders point at the bucket so every fill updates **the right** margin and position set.
+
+5. **Adjust and exit** — Change leverage with checks applied first; close positions or wind down the bucket when you are done. Settled buckets may follow a cooldown and reuse policy so identifiers stay manageable.
+
+---
+
+## Under the hood (short)
+
+Prices that affect your margin arrive through **explicit updates**, not hidden polling—so your account behaves the same way under **replay** and across **sharded** infrastructure. Optional **sandboxed** extensions (fees, stricter rules, sequencing preferences) can attach to products; if they fail, the **whole action rolls back**, so you do not get stuck in ambiguous half-states.
+
+---
+
+## What this means for performance
+
+The bucket layer is built so **margin never becomes the bottleneck** next to the CLOB: tight integration on the trading path, **parallel** work across independent buckets, **microsecond-class** reads for hot queries, and **high-throughput** streams for PnL and updates. Target throughput is **exchange-grade** (on the order of tens of thousands of bucket-relevant operations per shard per second in design), so **latency-sensitive** traders and **automated** systems get the same responsiveness they expect from the matching engine.
+
+---
+
+## Bucket and the rest of the stack
+
+| Layer | What it means for you |
+|-------|------------------------|
+| **Bank** | Your **spot** balance; moving funds into and out of margin. |
+| **Bucket** | Your **margin account**: collateral, positions, and liquidation **execution** when required. |
+| **CLOB** | **Matching**; your orders carry bucket context so fills apply to the right account. |
+| **Risk** | **Margin rules**, health, **when** liquidation starts, and orchestration of auctions and insurance. |
+| **Oracle** | **Prices** for margin checks and cross-asset deposits. |
+
+---
+
+## Related
+
+- [Engines introduction](/engines/introduction) — How CLOB, CLAMM, ReClamm, and throughput fit together.
+- [CLOB](/engines/clob) — Order-book matching and price–time priority.
+- [Introduction](/index) — Platform overview, including cross-margin and isolated buckets at a glance.

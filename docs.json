@@ -79,6 +79,12 @@
             ]
           },
           {
+            "group": "Bucket",
+            "pages": [
+              "engines/bucket"
+            ]
+          },
+          {
             "group": "CLAMM",
             "pages": [
               "engines/suitable-use-cases-clamm",
