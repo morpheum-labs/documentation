@@ -73,6 +73,12 @@
             ]
           },
           {
+            "group": "CLOB",
+            "pages": [
+              "engines/clob"
+            ]
+          },
+          {
             "group": "CLAMM",
             "pages": [
               "engines/suitable-use-cases-clamm",

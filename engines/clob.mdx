@@ -1,0 +1,102 @@
+---
+title: "CLOB (Central Limit Order Book)"
+sidebarTitle: "CLOB"
+description: "Why a central limit order book is essential for a competitive DEX, how matching works (bids, asks, price–time priority), and how CLOB compares to AMMs."
+---
+
+## Overview
+
+A **CLOB** (Central Limit Order Book) is the canonical data structure for **order-driven** spot trading: it stores all **resting** buy and sell intentions at explicit prices, and a **matching engine** pairs compatible orders under fixed rules. Unlike an AMM, which quotes from a formula and pooled liquidity, a CLOB executes against **discrete orders** queued at each price level—so execution is **transparent** (you see depth at each price) and **deterministic** (same sequence of events yields the same fills, given the same rules).
+
+**CLOB is the core market structure that makes a DEX truly competitive for high-volume and professional trading.** It is not just a feature—it is the essential mechanism that separates retail-friendly DEXes from ones that can handle institutional, HFT, and pro-level flow at scale.
+
+On Morpheum, the CLOB is the **matching layer** for order-book execution; it sits alongside **CLAMM / Hyper-CLAMM** liquidity so routes can combine AMM depth with limit-order precision where policy allows.
+
+---
+
+## Why CLOB is essential for a competitive DEX
+
+AMMs are dominant for many spot DEXes today, but **CLOB wins decisively when volume and professionalism matter**. The sections below spell out why every serious high-volume DEX roadmap eventually converges on some form of CLOB (on-chain, hybrid, or app-chain)—and why the market has already voted with its feet on perp and pro spot flow.
+
+### Quick definition (for context)
+
+- **CLOB** — A traditional order-book model where **limit orders** are placed on a visible, continuously updated book. Buys and sells are matched automatically by **price–time priority** (best price first, then earliest order). This is how major centralized exchanges and professional venues structure matching.
+- **vs AMM** (common DEX model, e.g. Uniswap-style pools) — Liquidity sits in algorithmic pools. Prices move via a constant-product (or concentrated) formula. You get instant execution but at the cost of slippage, impermanent loss, and weaker price discovery on size relative to a deep, visible book.
+
+### What CLOB delivers that pros and high-volume venues need
+
+1. **Precise execution with zero (or minimal) slippage** — You set a limit order at your exact price. It either fills at that price or better—or it does not fill at all. Professionals and algorithms minimize execution uncertainty. AMMs force you to accept whatever the pool price becomes after your trade (often materially worse on large size).
+
+2. **Transparent depth and real price discovery** — The full order book is visible in real time. You see bids and asks stacked at every tick. Market makers can compete aggressively, tightening spreads. High-volume pairs on mature CLOB venues can show very tight spreads that AMMs struggle to match without massive over-capitalization.
+
+3. **Advanced order types that professionals use** — Examples include stop-loss / take-profit, trailing stops, iceberg / hidden orders, post-only / IOC / FOK, bracket and OCO-style workflows, and similar controls. These are table stakes for serious traders and firms; pure AMM execution does not offer this natively.
+
+4. **Capital efficiency that scales with volume** — Liquidity in a CLOB is **concentrated where the market is trading now**. You do not have to lock capital across an entire price curve as in typical AMM pools. Market makers post at the levels they choose—often lowering cost of capital and improving returns on deployed capital relative to curve-wide LP for the same flow.
+
+5. **Large order sizes without destroying the market** — Very large trades against shallow AMM paths can move price sharply or require fragmented routing. A mature CLOB can absorb size with resting depth that replenishes and competes, often with lower **market impact** than comparable pool-only execution.
+
+6. **CEX-like experience that institutions and HFT demand** — Professional desks, prop firms, and quant funds are built around order-book logic. Venues that compete for decentralized perps and pro spot volume increasingly use CLOB-style matching; that pattern reflects what large flow actually requires.
+
+### Bottom line
+
+AMMs excel at **passive retail liquidity** and **long-tail tokens**—simple, permissionless, and composable. For **high-volume majors** and **professional traders** who move size, run strategies, and need tight execution and control, **CLOB is non-negotiable**: it is the structure that delivers the efficiency, predictability, and sophistication the largest capital in crypto expects from a venue that aspires to real exchange-grade flow.
+
+---
+
+## Sides: bids and asks
+
+- **Bid** — An order to **buy** the base asset (e.g. buy TOKEN against QUOTE). Bids are sorted **highest price first** (best bid at the top): buyers compete upward in price.
+- **Ask** (or offer) — An order to **sell** the base asset. Asks are sorted **lowest price first** (best ask at the top): sellers compete downward in price.
+
+The **spread** is the gap between the best bid and the best ask. **Depth** at each price is the sum of quantities still resting at that level.
+
+---
+
+## Resting orders and the book
+
+When you submit a **limit order** with a price and size, any part that does **not** immediately match is **rested** (queued) on the book at that price and side until it fills, is canceled, or expires—depending on product rules.
+
+A **market order** (or aggressive limit) **takes** liquidity: it walks the opposite side of the book (hits asks for a buy, hits bids for a sell) until the requested size is filled or liquidity runs out—so it pays the **spread** and may **sweep** multiple price levels.
+
+---
+
+## How matching works: price, then time
+
+Matching is **deterministic** and usually follows **price–time priority**:
+
+1. **Price priority** — Incoming orders match against the **best available prices** first (highest resting bids for sellers, lowest resting asks for buyers).
+2. **Time priority** — At the **same** price, earlier orders are filled **before** later ones (FIFO / queue at each level).
+
+That ordering is what makes execution **fair and predictable** for participants who care about queue position and adverse selection.
+
+---
+
+## What the matching engine does
+
+The **matching engine** is the component that:
+
+- Accepts new orders (limit, market, or hybrid types depending on the venue).
+- **Matches** incoming flow against the opposite side per price–time rules.
+- Updates **resting** state (partial fills, cancels, replacements).
+- Emits **trades** and book updates for downstream systems (risk, settlement, feeds).
+
+Throughput and latency at this layer set how much **order-driven** flow the system can sustain before queuing or sharding strategies matter.
+
+---
+
+## CLOB vs AMM (at a glance)
+
+| | **CLOB** | **AMM (e.g. CLAMM)** |
+|---|----------|----------------------|
+| **Liquidity** | Resting limit orders at discrete prices | Pooled liquidity along a curve / ranges |
+| **Price discovery** | Order flow and queue position | Curve parameters, fees, and LP positioning |
+| **Typical strength** | Precise prices, visible depth, queue fairness, pro execution | Passive liquidity, composability, range-based capital efficiency |
+
+In practice, venues often use **both**: AMM for continuous liquidity and range-based LP mechanics, and a CLOB for **limit-order** execution and high-frequency **matching**—with routing between them defined by protocol policy.
+
+---
+
+## Related
+
+- [Engines introduction](/engines/introduction) — How the CLOB fits next to CLAMM, ReClamm, and throughput context.
+- [CLOB spot market safety (Listings)](/listings/safety-thresholds-clob-spot-markets) — Policy and safety thresholds for CLOB-backed spot markets.

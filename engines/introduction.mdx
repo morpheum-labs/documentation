@@ -1,23 +1,36 @@
 ---
 title: "Engines Introduction"
 sidebarTitle: "Introduction"
-description: "Overview of the Engines section: CLAMM, Hyper-CLAMM, ReClamm volume, glide, and slippage"
+description: "Overview of the Engines section: CLAMM, Hyper-CLAMM, ReClamm, and the CLOB matching engine (35M+ TPS)"
 ---
 
 ## Overview
 
-The **Engines** section describes the core trading engines powering spot markets on Morpheum: **CLAMM** (Concentrated Liquidity Automated Market Maker) within the **Hyper-CLAMM** stack, and **ReClamm** (Re-Centering Liquidity AMM) mechanics. It covers suitable use cases by volume and market cap, maximum sustainable daily volume, glide (gradual recentering), and slippage impact—so you can understand how the system scales, when to use it, and how capital efficiency and execution quality are bounded.
+The **Engines** section describes the core trading engines powering spot markets on Morpheum: **CLAMM** (Concentrated Liquidity Automated Market Maker) within the **Hyper-CLAMM** stack, **ReClamm** (Re-Centering Liquidity AMM) mechanics, and the **CLOB** (Central Limit Order Book) matching engine. It covers suitable use cases by volume and market cap, maximum sustainable daily volume, glide (gradual recentering), and slippage impact for the AMM side—plus how the CLOB delivers high-throughput deterministic matching—so you can understand how the system scales, when to use each engine, and how capital efficiency and execution quality are bounded.
 
 ## What you'll find here
 
+- **CLOB matching engine** — Central limit order book as the high-throughput matching layer (~35M TPS in benchmark-class runs); how it sits beside CLAMM for order-driven execution and hybrid routing.
 - **CLAMM use cases** — Suitable use cases by volume and market cap; when CLAMM fits (spot, cross-chain synthetics, stables, memes); implementation reference (Golang).
 - **Volume capacity** — Maximum sustainable daily volume ($5–15B), theoretical peak ($20–50B+), and IMO-style limiting factors (compute, consensus, state, MEV, real-world analogs).
 - **ReClamm glide mechanics** — How glide recenters virtual liquidity toward a target price without large arb or active LP management; variables, centeredness, update rule, typical values, and trade-offs.
 - **ReClamm slippage impact** — Slippage formula and bounds, volatility and stochastic effects, MEV/LP impact, DAG async, simulation results, and Hyper-CLAMM mitigations.
 
+## CLOB matching engine
+
+**CLOB** (Central Limit Order Book) is Morpheum’s **matching engine**: it maintains the canonical book of bids and asks and performs deterministic matching at the speed layer. Alongside **CLAMM** (liquidity and pricing via concentrated / re-centered AMM mechanics), the CLOB is the order-driven path for resting liquidity and precise price–time priority.
+
+In internal and benchmark-class configurations, the CLOB core has demonstrated on the order of **35 million transactions per second (TPS)**—the throughput envelope that makes it viable for the highest-frequency spot flows and for **CLOB–CLAMM hybrid** routing (AMM liquidity with order-book execution where policy allows). Deeper listing and safety context for CLOB spot markets lives under **Listings**; the pages in this **Engines** tab focus on CLAMM, Hyper-CLAMM volume, and ReClamm mechanics.
+
 ## Quick links
 
 <Columns cols={2}>
+  <Card title="CLOB basics" icon="book-open" href="clob">
+    Bids, asks, price–time priority, resting liquidity, and how matching works.
+  </Card>
+  <Card title="CLOB spot market safety" icon="shield" href="listings/safety-thresholds-clob-spot-markets">
+    Policy and safety thresholds for CLOB-backed spot markets (Listings).
+  </Card>
   <Card title="CLAMM use cases" icon="lightbulb" href="suitable-use-cases-clamm">
     Suitable use cases by volume and market cap; spot, synthetics, and Golang implementation reference.
   </Card>
