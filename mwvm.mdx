@@ -1,0 +1,81 @@
+---
+title: "MWVM"
+description: "Morpheum WASM Virtual Machine — local agent runtime with wasmtime, SDKs, and chain-parity execution"
+---
+
+## What MWVM is
+
+**MWVM** (Morpheum WASM Virtual Machine) is the open-source runtime for building, running, and evolving Morpheum agents **locally with the same WASM** that will execute on-chain. The canonical project lives at [github.com/morpheum-labs/mwvm](https://github.com/morpheum-labs/mwvm).
+
+You get full development ergonomics—real inference, persistent memory, multi-agent swarms, and simulation—while keeping **behavioral parity** when workloads move to production.
+
+## Wasmtime engine and host implementations
+
+MWVM is built on a **full [wasmtime](https://wasmtime.dev/)** stack with rich host functions for agent workloads:
+
+- **Local quantized inference** via [Candle](https://github.com/huggingface/candle) and [Tract](https://github.com/sonos/tract), so models run on your machine without depending on remote APIs for core paths.
+- **Continuous batching** and **streaming responses** for throughput and interactive UX when driving models from guest WASM.
+
+Together, these give you a production-shaped inference surface while you iterate off-chain.
+
+## Simulation and debugging
+
+Ship complex agent logic with confidence using tooling aimed at correctness and observability:
+
+- **Step-through execution**, **breakpoints**, and inspection of guest ↔ host boundaries.
+- **Local state fork** to branch scenarios without losing your baseline run.
+- **Mock TEE / zkML** surfaces so you can exercise privacy and attestation-style flows without standing up full hardware stacks on every laptop.
+
+## Multi-agent orchestration
+
+MWVM includes an orchestration layer for many agents at once:
+
+- **Spawn large swarms** (on the order of thousands of agents) on a single machine for research and load-shaped tests.
+- **Message passing** between agents with semantics aligned to how coordination works in Morpheum’s model.
+- **Shared memory simulation** so collective state and contention behave like they will under real orchestration constraints.
+
+## SDKs
+
+Two first-class SDK paths cover systems and front-end style integrations:
+
+| Surface | Entry point | Notes |
+| -------- | ----------- | ----- |
+| **Rust** | `mwvm::AgentRuntime::new()` | Async host calls; natural fit for backends, CLIs, and embedded runners. |
+| **TypeScript** | **mwvm-js** | WASM bindings for browsers and Node-style environments. |
+
+Use whichever matches your stack; both target the same guest ABI and host capabilities.
+
+## Gateways: MCP, A2A, DID, x402
+
+MWVM aligns **external interfaces** with the same protocols Morpheum uses elsewhere:
+
+- **[MCP](/mcp)** — Model Context Protocol for tools and agent ↔ editor automation.
+- **A2A** — agent-to-agent messaging and interoperability.
+- **DID** — decentralized identifiers for agents and services.
+- **[x402](/x402)** — HTTP 402–style paid APIs and metered access patterns.
+
+These gateways expose **exact** wire shapes and semantics you can rely on when wiring MWVM into editors, wallets, and paid endpoints.
+
+## Local persistent memory
+
+A **local persistent memory** tier keeps agent state durable without requiring a heavyweight database footprint:
+
+- **File-system–backed** storage with an **embedded HNSW** index for vector-style retrieval.
+- **No RocksDB requirement** for the default local path—simpler installs and fewer native dependencies for everyday development.
+
+## Offline mode and testnet fork
+
+Choose how “real” the environment is:
+
+- **Offline mode** for air-gapped or CI-only runs with no network assumptions.
+- **Testnet fork simulation** to connect to **real chain state** when you need it, or run **100% locally** when you do not—matching how you want to pay in latency and fidelity.
+
+## Model registry client
+
+A **model registry client** downloads **commitment-bound** artifacts, verifies expectations, and **caches** them locally so repeat runs stay fast and reproducible.
+
+## Next steps
+
+- Clone and build from [morpheum-labs/mwvm](https://github.com/morpheum-labs/mwvm) (see the repo **README** and **QUICKSTART** for `cargo run` examples).
+- Fund and sign execution paths with [Agent wallet](/agent-wallet).
+- Wire tools and automation through [MCP](/mcp) and paid flows with [x402](/x402).

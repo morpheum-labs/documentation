@@ -1,0 +1,15 @@
+---
+title: "Agent wallet"
+description: "Wallets and key handling for automated traders and agents"
+---
+
+## Overview
+
+**Agent wallets** are the signing and funding layer for bots, MCP tools, and autonomous workflows on Morpheum. They separate operator policy (limits, allowlists) from execution keys while keeping nonces and balances consistent with the chain.
+
+Guidance here covers recommended patterns: scoped keys, hardware or KMS-backed signing where required, and how agents should request quotes or submit orders safely.
+
+## Next steps
+
+- Start from [Quickstart](/quickstart) for repo and tooling setup.
+- See [MWVM](/mwvm) for how agent bytecode and policy run in the Morpheum virtual machine environment.
