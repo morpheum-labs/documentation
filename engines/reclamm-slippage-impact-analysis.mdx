@@ -8,7 +8,7 @@ description: "Slippage in ReClamm: formula and bounds, volatility effects, MEV/L
 
 Slippage in automated market makers (AMMs) represents the deviation between the expected execution price (based on the spot price before a trade) and the actual price realized after accounting for the trade's impact on reserves. In **ReClamm**, slippage is uniquely modulated by the interplay of real reserves (R) and virtual balances (V), where the effective liquidity depth is R + V, and the glide mechanism dynamically shifts V toward a target T over time. This creates a "softened" constant-product invariant $L \approx (R_a + V_a)(R_b + V_b)$, which bounds slippage more tightly than in pure constant-product models (e.g. Uniswap V2) but introduces variability tied to centeredness $c$ and decay rate $\tau$.
 
-To rigorously analyze the impact—like solving an IMO problem where we bound extremal values in a dynamical system—we decompose across mathematical, probabilistic, economic, and asynchronous dimensions. This asserts tightness: slippage $s$ is $O(\Delta x / L)$ in the small-trade limit, but glide-induced imbalances can amplify or dampen it by factors up to 2–5× depending on regime. Below we derive key bounds, summarize simulation scenarios, and outline reengineering optimizations for Hyper-CLAMM integration, ensuring capital efficiency remains 200–300× while mitigating &gt;1% slippage risks in high-volume spot markets.
+To rigorously analyze the impact—like solving an IMO problem where we bound extremal values in a dynamical system—we decompose across mathematical, probabilistic, economic, and asynchronous dimensions. This asserts tightness: slippage $s$ is $O(\Delta x / L)$ in the small-trade limit, but glide-induced imbalances can amplify or dampen it by factors up to 2–5× depending on regime. Below we derive key bounds, summarize simulation scenarios, and outline reengineering optimizations for Hyper-CLAMM integration, ensuring capital efficiency remains 200–300× while mitigating slippage risks above 1% in high-volume spot markets.
 
 ---
 
@@ -23,23 +23,27 @@ $$
 The effective price $p_{\text{eff}} = \Delta y / \Delta x$, so slippage $s = (p - p_{\text{eff}}) / p \approx [\Delta x (1 - \phi)] / [2 (R_a + V_a)]$ for small $\Delta x$ (first-order Taylor expansion). More precisely:
 
 $$
-s = 1 - \frac{p_{\text{eff}}}{p} = \frac{\Delta x (1 - \phi)}{(R_a + V_a) + \Delta x (1 - \phi)} \approx \frac{\Delta x (1 - \phi)}{2 L^{1/2}} \quad \text{(via AM–GM on invariant)}
+\begin{aligned}
+  s &= 1 - \frac{p_{\text{eff}}}{p} \\
+    &= \frac{\Delta x (1 - \phi)}{(R_a + V_a) + \Delta x (1 - \phi)} \\
+    &\approx \frac{\Delta x (1 - \phi)}{2 L^{1/2}} \quad \text{(via AM-GM on invariant)}
+\end{aligned}
 $$
 
-**Glide impact**: During glide, $V$ evolves as $V_{\text{next}} = T + (V - T)(1 - \tau)^{\Delta t}$. If glide shifts $V_a$ upward (e.g. post-drift), effective depth on A-side increases, reducing $s$ by ~$(V_{\text{old}} / V_{\text{new}})$. Conversely, if glide imbalances ($c &lt; m$), $s$ can spike by 1.5–3× on the shallow side.
+**Glide impact**: During glide, $V$ evolves as $V_{\text{next}} = T + (V - T)(1 - \tau)^{\Delta t}$. If glide shifts $V_a$ upward (e.g. post-drift), effective depth on A-side increases, reducing $s$ by ~$(V_{\text{old}} / V_{\text{new}})$. Conversely, if glide imbalances ($c \lt m$), $s$ can spike by 1.5–3× on the shallow side.
 
 - **Tight bound (IMO-style extremal)**: For fixed $L$, max $s$ occurs at max imbalance ($c \to 0$), where $s \leq \Delta x / \min(R + V)$ (pigeonhole on reserves). Min $s \approx \Delta x / (2 \max(R + V))$ when $c=1$. Proof: By convexity of $1/x$, Jensen bounds $s \leq [\Delta x / L^{1/2}] (1 + |V_a - V_b| / L)$, with glide capping $|V_a - V_b| \leq 0.1 L$ for $\tau \geq 0.5$ (exponential convergence lemma: steps to $\varepsilon$-error $= \log(\delta/\varepsilon) / \log(1/(1-\tau)) \leq 10$ for daily triggers).
 
-In stable markets (vol $\sigma &lt; 5\%$), glide keeps $s &lt; 0.05\%$ for $\Delta x &lt; 1\%$ of $R$. In volatiles ($\sigma &gt; 20\%$), $s$ can reach 1–5% without damping.
+In stable markets (vol $\sigma \lt 5\%$), glide keeps $s \lt 0.05\%$ for $\Delta x \lt 1\%$ of $R$. In volatiles ($\sigma \gt 20\%$), $s$ can reach 1–5% without damping.
 
 ---
 
 ## 2. Probabilistic dimension: volatility and stochastic drift effects
 
-Glide introduces stochastic elements if $\tau$ is volatility-damped (e.g. $\tau = 0.5 / \sqrt{Q_0}$, where $Q_0$ is initial imbalance). Model price as geometric Brownian motion $dP = \mu \, dt + \sigma \, dW$; glide counters drift with Lyapunov exponent $\lambda = -\tau \log(1-\tau) &lt; 0$, ensuring mean reversion $E[s] \leq \sigma^2 / (2\tau)$ (Itô's lemma variance bound).
+Glide introduces stochastic elements if $\tau$ is volatility-damped (e.g. $\tau = 0.5 / \sqrt{Q_0}$, where $Q_0$ is initial imbalance). Model price as geometric Brownian motion $dP = \mu \, dt + \sigma \, dW$; glide counters drift with Lyapunov exponent $\lambda = -\tau \log(1-\tau) \lt 0$, ensuring mean reversion $E[s] \leq \sigma^2 / (2\tau)$ (Itô's lemma variance bound).
 
-- **High-vol regime (meme coins, $\sigma=50\%$)**: Glide damps $s$ by 40–60% vs no-glide, but frequent triggers ($c &lt; m$ &gt;50% time) raise variance $\operatorname{Var}(s) \approx 0.01 \sigma^2 \Delta x^2 / L$. Bound: $P(s &gt; 2\%) &lt; \exp(-\tau / \sigma) \leq 0.1$ for $\tau=0.6$ (Chernoff on deviations).
-- **Low-vol regime (stables, $\sigma=1\%$)**: $s \approx 0.01$–0.1%, with glide reducing long-tail risks by 80% (quantile bound: 99th percentile $s &lt; \Delta x / (L + \tau \Delta t V)$).
+- **High-vol regime (meme coins, $\sigma=50\%$)**: Glide damps $s$ by 40–60% vs no-glide, but frequent triggers ($c \lt m$ more than 50% of the time) raise variance $\operatorname{Var}(s) \approx 0.01 \sigma^2 \Delta x^2 / L$. Bound: $P(s \gt 2\%) \lt \exp(-\tau / \sigma) \leq 0.1$ for $\tau=0.6$ (Chernoff on deviations).
+- **Low-vol regime (stables, $\sigma=1\%$)**: $s \approx 0.01$–0.1%, with glide reducing long-tail risks by 80% (quantile bound: 99th percentile $s \lt \Delta x / (L + \tau \Delta t V)$).
 
 Assertion: Optimal $\tau$ minimizes $E[s] + \operatorname{Var}(s)$; derivative yields $\tau^* = W(\sigma L / \Delta x) / \sigma \approx 0.5$–0.7 (Lambert $W$, tightness as in IMO 2006 P3 functional equations).
 
@@ -47,17 +51,17 @@ Assertion: Optimal $\tau$ minimizes $E[s] + \operatorname{Var}(s)$; derivative y
 
 ## 3. Economic dimension: arbitrage, MEV, and LP impact
 
-Slippage creates arb opportunities: if glide predicts a shift, front-runners can extract $\Delta V \tau \Delta t / L$ value per trigger. But gradualism bounds MEV &lt; 0.1% TVL/day (vs 1–5% in discrete re-ranges).
+Slippage creates arb opportunities: if glide predicts a shift, front-runners can extract $\Delta V \tau \Delta t / L$ value per trigger. But gradualism bounds MEV to under $0.1\%$ of TVL per day (vs 1–5% in discrete re-ranges).
 
 - **Positive impact**: Lower average $s$ (20–50% vs Uniswap V3) boosts trade volume by 1.5–3×, increasing fees to LPs (yield boost ~0.5–2% APY).
-- **Negative impact**: In surges, amplified $s$ on imbalanced side erodes LP value by IL $\approx s^2 / 2$ (quadratic approximation). For $10M TVL pool, 5% $s$ on $1M trade → $50K temporary IL, recovered via glide in 1–3 days.
-- **Hybrid bound**: In Hyper-CLAMM, route large trades (&gt;1% $R$) to CLOB for $s \to 0$, capping economic loss &lt;0.01 TVL (Nash equilibrium: arb cost &gt; reward for $\tau &lt; 0.7$).
+- **Negative impact**: In surges, amplified $s$ on imbalanced side erodes LP value by IL $\approx s^2 / 2$ (quadratic approximation). For a **10M USD** TVL pool, 5% $s$ on a **1M USD** trade implies about **50K USD** temporary IL, recovered via glide in 1–3 days.
+- **Hybrid bound**: In Hyper-CLAMM, route large trades (above 1% of $R$) to CLOB for $s \to 0$, capping economic loss below 0.01 TVL (Nash equilibrium: arb cost exceeds reward for $\tau \lt 0.7$).
 
 ---
 
 ## 4. Asynchronous dimension: DAG consensus complexities
 
-In Morpheum's gasless DAG (MorphDAG-BFT), glide uses relative timestamps (cumulative weight, not absolute time), so $\Delta t$ variances cause async $s$ deviations. Bound: if tip delays $d \sim \text{Poisson}(\lambda=0.1)$, $E[\Delta s] \leq d \tau / L \leq 0.001\%$ (propagation lemma). Cross-shard trades (2PC) amplify if glide conflicts: abort rate &lt;1% with quorum aggregation.
+In Morpheum's gasless DAG (MorphDAG-BFT), glide uses relative timestamps (cumulative weight, not absolute time), so $\Delta t$ variances cause async $s$ deviations. Bound: if tip delays $d \sim \text{Poisson}(\lambda=0.1)$, $E[\Delta s] \leq d \tau / L \leq 0.001\%$ (propagation lemma). Cross-shard trades (2PC) amplify if glide conflicts: abort rate under 1% with quorum aggregation.
 
 **Optimization**: Batch glides every 5–10 blocks, reducing async variance by $\sqrt{n}$ (central limit).
 
@@ -65,7 +69,7 @@ In Morpheum's gasless DAG (MorphDAG-BFT), glide uses relative timestamps (cumula
 
 ## Simulation results: quantitative impact
 
-Consider a $2M TVL pool ($R_a = R_b = 1000$ units, price $= 1$) with fee $= 0.3\%$. Trade sizes: 0.1–10% of $R$.
+Consider a pool with **2M USD** TVL ($R_a = R_b = 1000$ units, spot price $= 1$, fee $= 0.3\%$). Trade sizes: 0.1–10% of $R$.
 
 | Trade size (% R) | Base s (%) (V=5000) | High V s (%) (V=10000) | Low V s (%) (V=1000) | Post-glide s (%) (V_a=7000, V_b=3000) |
 |------------------|---------------------|-------------------------|-----------------------|----------------------------------------|
@@ -86,4 +90,4 @@ Slippage curves are convex upward, with high-$V$ flattest (least impact), low-$V
 
 ## Reengineering for Hyper-CLAMM: mitigating negative impacts
 
-Integrate glide-aware hooks (e.g. volatility-adjusted $\tau$ via Volatility Fee Hook): if $s &gt; 1\%$, pause glide and route to CLOB hybrid (zero $s$). Damp $\tau$ stochastically ($\tau = 0.5/\sqrt{Q_0}$) for 50% vol reduction. In DAG, use sub-DAG quorums for $\Delta t$ consensus, bounding async $s &lt; 0.01\%$. For spot markets, seed synthetics with $V = 5$–10×$R$, capping max $s &lt; 0.5\%$ at $10B/day volume—achieving 250× efficiency without &gt;1% IL spikes. This reengineers ReClamm as a resilient core for Hyper-CLAMM, provably optimal under bounded volatility (IMO tightness: unique minimum via convexity).
+Integrate glide-aware hooks (e.g. volatility-adjusted $\tau$ via Volatility Fee Hook): if $s \gt 1\%$, pause glide and route to CLOB hybrid (zero $s$). Damp $\tau$ stochastically ($\tau = 0.5/\sqrt{Q_0}$) for 50% vol reduction. In DAG, use sub-DAG quorums for $\Delta t$ consensus, bounding async $s \lt 0.01\%$. For spot markets, seed synthetics with $V = 5$–10×$R$, capping max $s \lt 0.5\%$ at **10B USD/day** volume—achieving 250× efficiency without IL spikes above 1%. This reengineers ReClamm as a resilient core for Hyper-CLAMM, provably optimal under bounded volatility (IMO tightness: unique minimum via convexity).

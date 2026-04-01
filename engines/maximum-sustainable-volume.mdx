@@ -12,24 +12,52 @@ This estimate comes from reengineering the established Hyper-CLAMM design featur
 
 ---
 
+## Capacity model (notation)
+
+Let $N$ be the number of active shards, $v_i$ the sustainable **daily notional** (USD) handled by shard $i$, and $\bar{v} = \frac{1}{N}\sum_i v_i$ the average per-shard throughput. Total spot notional per day is:
+
+$$
+V_{\mathrm{day}} = \sum_{i=1}^{N} v_i = N\,\bar{v}.
+$$
+
+Per-swap work is dominated by $O(\log n)$ tick traversal plus ReClamm glide (exponentiation in virtual balance updates). Write $f_{\mathrm{swap}}$ for sustained swaps per second per shard and $\bar{s}$ for typical trade size (USD). Over $T = 86400\,\mathrm{s}$:
+
+$$
+V_{\mathrm{comp}} \approx N \cdot f_{\mathrm{swap}} \cdot \bar{s} \cdot T.
+$$
+
+**Sustainable** capacity assumes latency, consensus, and glide/oracle margins stay within design envelopes; **burst** capacity allows temporary elevation of $f_{\mathrm{swap}}$ and $\bar{v}$ at the cost of higher tail latency and throttle risk.
+
+---
+
 ## Realistic maximum (sustainable, production-ready)
 
 **$5–15 billion / day**
 
-This is the level at which Hyper-CLAMM remains stable, with sub-100 ms end-to-end latency, bounded slippage &lt;0.01–0.05% on most pairs, and no significant degradation in glide / virtual balance adjustment logic.
+This is the level at which Hyper-CLAMM remains stable, with sub-100 ms end-to-end latency, bounded slippage $s \in [10^{-4},\,5\times 10^{-4}]$ ($0.01$–$0.05\%$) on most pairs, and no significant degradation in glide / virtual balance adjustment logic.
 
 **Why this range?**
 
-- **Sharding**: 100–200 shards (typical from shard-clob.md and clob-system-design.md), each handling O(log n) tick iteration + ReClamm glide in &lt;10 ms per swap.
-- **Per-shard throughput**: ~50–150 million USD / day realistic (conservative, based on current high-volume AMMs like Uniswap V3 on L2s doing ~$0.5–2B/day per major chain with far fewer TPS).
-- **Total**: 100 shards × ~$50–150M → **$5–15B/day** sustainable.
-- **DAG parallelism** (MorphDAG-BFT sub-DAGs per shard) keeps consensus overhead low even at this scale.
+- **Sharding**: $N \in [100,\,200]$ (typical from shard-clob.md and clob-system-design.md), each shard executing tick iteration in $O(\log n)$ plus ReClamm glide in under $10\,\mathrm{ms}$ per swap.
+- **Per-shard throughput**: order of $\bar{v} \in [5\times 10^{7},\,1.5\times 10^{8}]$ USD/day (conservative vs major L2 AMM aggregates).
+- **Total**:
+
+$$
+V_{\mathrm{sust}} = N\,\bar{v} \in [5\times 10^{9},\,1.5\times 10^{10}] \;\text{USD/day}
+\quad (\text{equiv}\ \$5‐15\,\mathrm{B/day}).
+$$
+
+- **DAG parallelism** (MorphDAG-BFT sub-DAGs per shard) keeps consensus overhead low at this scale.
 
 **Current real-world benchmark (Jan 2026):**
 
-- Hyperliquid spot volume hovers ~$300–600M/day (e.g. $352M, $325M reported on different days).
-- The broader Hyperliquid L1 DEX volume (including spot-like activity) reaches ~$600–640M/day in aggregates.
-- Morpheum's design targets significantly higher ambition via deeper sharding + hybrid CLOB-AMM routing, so 10–25× the current Hyperliquid spot figure is a reasonable engineering target.
+- Hyperliquid spot volume hovers $\sim 3\times 10^{8}‐6\times 10^{8}$ USD/day (e.g. \$352M, \$325M on different days).
+- Broader Hyperliquid L1 DEX aggregates reach $\sim 6\times 10^{8}‐6.4\times 10^{8}$ USD/day.
+- Morpheum targets higher headroom via deeper sharding and hybrid CLOB-AMM routing, so $10$–$25\times$ current Hyperliquid spot is a reasonable engineering target:
+
+$$
+\frac{V_{\mathrm{sust}}}{V_{\mathrm{HL,spot}}} \approx \frac{N\,\bar{v}}{V_{\mathrm{HL,spot}}} \in [10,\,25].
+$$
 
 ---
 
@@ -37,34 +65,71 @@ This is the level at which Hyper-CLAMM remains stable, with sub-100 ms end-to-en
 
 **$20–50+ billion / day** (short bursts, 1–3 days)
 
-- **Full activation**: 200+ shards, aggressive caching (in-memory + transient virtual states), SIMD/vectorized batching in reclamm_math.go, and CLOB-hybrid routing for &gt;80% of volume.
-- **Per-shard burst**: up to ~$250–500M/day during meme/commodity frenzies (analogous to silver/gold HIP-3 sub-markets hitting $1.2–1.6B single-pair volume in short windows).
-- **Total burst**: aligns with top perp DEX days (Hyperliquid hitting $9–14B+ perp volume spikes, or Uniswap monthly peaks implying ~$3–4B/day annualized bursts).
+Let $\beta > 1$ be a **burst multiplier** on per-shard daily notional (caching, batching, CLOB-heavy routing). With $N_{\mathrm{burst}} \gtrsim 200$ and $\bar{v}_{\mathrm{burst}} \in [2.5\times 10^{8},\,5\times 10^{8}]$ USD/day:
 
-In extreme cases (e.g. global meme surge + cross-chain synthetic flood), the system can temporarily absorb **$30–50B/day** before glide triggers / centeredness margin (m=0.8) and oracle deviation circuit-breakers (δ ≤ 0.5%) start throttling to protect invariants.
+$$
+V_{\mathrm{burst}} = N_{\mathrm{burst}}\,\bar{v}_{\mathrm{burst}} \approx \beta\,N\,\bar{v}
+\;\in\; [2\times 10^{10},\,5\times 10^{10}] \;\text{USD/day}.
+$$
+
+- **Full activation**: $N_{\mathrm{burst}} \gtrsim 200$, aggressive caching (in-memory + transient virtual states), SIMD/vectorized batching in `reclamm_math.go`, and CLOB-hybrid routing for $>80\%$ of volume.
+- **Per-shard burst**: up to $\sim 2.5\times 10^{8}‐5\times 10^{8}$ USD/day during frenzies (analogous to concentrated HIP-3 style sub-markets posting $\mathcal{O}(10^{9})$ USD single-pair volume in short windows).
+- **Total burst**: aligns with top perp DEX days ($\sim 9\times 10^{9}‐1.4\times 10^{10}$ USD perp spikes) or Uniswap-scale monthly peaks annualized to multi–billion-dollar daily bursts.
+
+Let $m$ be the **centeredness margin** (e.g. ReClamm requires $c \geq m$ with $m = 0.8$ in stress docs) and $\delta$ the **oracle deviation** circuit-breaker threshold (e.g. $\delta = 0.5\%$). In extreme regimes, throttling engages when glide spam or oracle stress violates:
+
+$$
+(c \geq m) \;\wedge\; (|\hat{p} - p_{\mathrm{oracle}}| / p_{\mathrm{oracle}} \leq \delta),
+$$
+
+beyond which $V_{\mathrm{day}}$ is capped toward the **$30$–$50\,\mathrm{B}/\mathrm{day}$** band before invariants force slowdown.
 
 ---
 
 ## Key limiting factors and bottlenecks (IMO-style multi-dimensional analysis)
 
-To assert the bound rigorously (stepping back like IMO problem decomposition):
+To assert the bound rigorously (stepping back like IMO problem decomposition), each dimension supplies an inequality on $V_{\mathrm{day}}$.
 
-1. **Computational dimension** (O(log n) tick iteration + glide exponentiation per swap)  
-   → ~10⁴–10⁵ swaps/second per shard feasible with Go + sync/atomic + per-pool fine-grained locking. At avg $1,000–$10,000 trade size → $10–100B/day theoretical per 100 shards before GC pressure dominates.
+### 1. Computational dimension
 
-2. **Consensus / async complexity dimension**  
-   → DAG sub-DAGs per shard → near-linear scaling until ~200–300 shards (greedy assignment skew &lt;2%). Beyond that, cross-shard 2PC saga overhead grows → soft cap ~$30–50B/day before &gt;1% abort rate.
+Per shard, feasible sustained swap rate $f_{\mathrm{swap}} \in [10^{4},\,10^{5}]\,\mathrm{s}^{-1}$ (Go + fine-grained locking) and typical trade size $\bar{s} \in [10^{3},\,10^{4}]$ USD. The **raw** notional flux per shard is $q = f_{\mathrm{swap}}\,\bar{s}$ (USD/s), so:
 
-3. **State / storage dimension**  
-   → Virtual balance persistence + position indexing per pool. KVStore + hybrid caching bounds growth; at $50B/day volume, state delta per block remains manageable (&lt;10 GB/day compressed).
+$$
+V_{\mathrm{comp}}^{\mathrm{raw}} = N\,q\,T = N\,f_{\mathrm{swap}}\,\bar{s}\,T.
+$$
 
-4. **Economic / MEV dimension**  
-   → ReClamm glide + oracle multi-sourcing + VRF ordering bounds sandwich/JIT attacks. At very high volume, hook dynamic fees (e.g. volatility / MEV tax hooks) capture value but increase gas-equivalent cost → self-throttling around $20–40B/day.
+In principle $V_{\mathrm{comp}}^{\mathrm{raw}}$ is enormous at these $f_{\mathrm{swap}}$ and $\bar{s}$; the **operational** bound on $V_{\mathrm{day}}$ is not set here but by GC pauses, cache coherence, and the $O(\log n)$ + glide serial path, which cap realized throughput orders of magnitude below naive $f_{\mathrm{swap}}\,\bar{s}$ — leaving headroom in the $\$10^{10}‐\$10^{11}$/day **engineering** range before other dimensions dominate.
 
-5. **Real-world analog dimension**
-   - Hyperliquid perp peaks: $9–14B/day single chain (not sharded like Morpheum).
-   - Uniswap V3 monthly records imply ~$3–4B/day bursts (e.g. $116B/month peak in late 2025).
-   - Morpheum sharding + gasless DAG gives 5–15× multiplier → aligns with $10–50B range.
+### 2. Consensus / async complexity dimension
+
+With sub-DAGs per shard, throughput scales nearly linearly in $N$ until greedy shard assignment skew or coordinator limits appear. Let $\alpha(N)$ be effective throughput efficiency ( $\alpha \approx 1$ for $N \lesssim 200$–$300$ ). Cross-shard $2$PC introduces abort probability $p_{\mathrm{abort}}(N)$; staying under $p_{\mathrm{abort}} < 10^{-2}$ keeps:
+
+$$
+V_{\mathrm{cons}} \;\lesssim\; \alpha(N)\,N\,\bar{v}, \qquad
+\alpha(N) \to \alpha_{\infty} < 1 \quad \text{where} \quad N \to \infty,
+$$
+
+yielding a soft cap in the $\$3\times 10^{10}‐\$5\times 10^{10}$/day range before $p_{\mathrm{abort}}$ exceeds $1\%$.
+
+### 3. State / storage dimension
+
+Let $\Delta S$ be compressed state delta per day. For $V_{\mathrm{day}} \sim 5\times 10^{10}$ USD, engineering targets keep:
+
+$$
+\Delta S \;\lesssim\; 10\,\text{GB/day}
+$$
+
+(compressed), so persistence and indexing remain bounded.
+
+### 4. Economic / MEV dimension
+
+Hook fees and MEV-aware routing imply an increasing **effective cost** per unit notional at extreme $V_{\mathrm{day}}$, producing self-throttling in a band compatible with $\$2\times 10^{10}‐\$4\times 10^{10}$/day before LP and arb externalities dominate.
+
+### 5. Real-world analog dimension
+
+- Hyperliquid perp peaks: $\sim 9\times 10^{9}‐1.4\times 10^{10}$ USD/day (single chain, not fully sharded like Morpheum).
+- Uniswap V3 monthly records imply $\sim 3\times 10^{9}‐4\times 10^{9}$ USD/day burst equivalents.
+- Morpheum sharding and gasless DAG imply a multiplier $\kappa \in [5,\,15]$ on analog single-chain spot figures, consistent with $V_{\mathrm{sust}}$ and $V_{\mathrm{burst}}$ above.
 
 ---
 
@@ -81,4 +146,4 @@ To assert the bound rigorously (stepping back like IMO problem decomposition):
 
 ## Summary
 
-Hyper-CLAMM is therefore engineered to comfortably handle top-tier spot DEX volumes seen in 2026 (far beyond current Hyperliquid spot ~$300–600M/day), with headroom for 10–50× growth as Morpheum adoption scales. The sharded, DAG-optimized, ReClamm-virtual design gives it a structural advantage over monolithic or EVM-based AMMs in this volume regime.
+Hyper-CLAMM is therefore engineered to comfortably handle top-tier spot DEX volumes seen in 2026 (far beyond current Hyperliquid spot $\sim 3\times 10^{8}‐6\times 10^{8}$ USD/day), with headroom for $10$–$50\times$ growth as Morpheum adoption scales. The sharded, DAG-optimized, ReClamm-virtual design gives it a structural advantage over monolithic or EVM-based AMMs in this volume regime.

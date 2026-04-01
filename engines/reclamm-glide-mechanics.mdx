@@ -95,19 +95,20 @@ $$
 
 ## Visual intuition – how the glide looks
 
-Imagine the current virtual price is far below the target:
+Imagine the virtual price starts **below** the target and moves **up** over time. Think of the target as the top rung and the glide as climbing toward it: each step is **largest** when you are far away and **smallest** when you are almost there.
 
-```
-Target price ───────┐
-                    │
-Current virtual price is here ───┐
-                                 │
-                                 ▼           time ──►
-                                 Gradually gliding up
+```mermaid
+flowchart BT
+  T[["Target price"]]
+  N3[["Nearly there"]]
+  N2[["Closer"]]
+  N1[["Virtual price now"]]
+  N1 -->|largest moves| N2
+  N2 -->|smaller moves| N3
+  N3 -->|slowest near target| T
 ```
 
-The speed is fastest at the beginning (large deviation)  
-→ becomes slower and slower as it approaches the target
+**Time** runs along the journey (left to right in the story, bottom to top in the diagram): the farther below target you start, the faster the **absolute** correction feels at first; near the target, movement **asymptotically** slows so there is no sudden snap.
 
 ---
 
@@ -147,4 +148,4 @@ Related topics you can go deeper into:
 - How to choose τ and m given historical volatility of the pair  
 - Main failure modes / attack vectors when implementing glide
 
-See the internal ReClamm design docs and `pkg/modules/clamm/math/reclamm_math.go` for implementation details.
+See the internal ReClamm design docs for deeper detail.
