@@ -1,223 +1,222 @@
 ---
 title: "Morpheum signatures"
 sidebarTitle: "Morpheum signatures"
-description: "ECDSA_MLDSA44 hybrid signing: secp256k1 plus ML-DSA-44 (NIST FIPS 204), Morpheum addresses, verification, and where it fits in delegation and wallets"
+description: "Conceptual guide to Morpheum’s hybrid classical + post-quantum signatures, addresses, verification, and how they fit identity and delegation"
 ---
 
 ## Overview
 
-**Yes — Morpheum has a unique, purpose-built hybrid signature scheme called `ECDSA_MLDSA44`.**  
-It is the only signature type that is explicitly “Morpheum-native” and is designed to give you **both Ethereum-style compatibility today and post-quantum security for the future**.
+Morpheum defines a **hybrid signature** built for two goals at once: **stay compatible with today’s Ethereum-style ecosystem**, and **add a post-quantum layer** so identities and authorizations remain meaningful as cryptography evolves.
 
-Below is a technical breakdown aligned with the Morpheum standards implementation. **Wire formats, exact byte packing, and library versions** evolve with releases—confirm against the latest **API** and **wallet** documentation for your deployment.
-
----
-
-## 1. What is ECDSA_MLDSA44?
-
-It is a **hybrid signature** that concatenates two independent signatures over the same message:
-
-| Component      | Algorithm                  | Purpose                                      | Size (typical) |
-|----------------|----------------------------|----------------------------------------------|----------------|
-| **ECDSA**      | ECDSA on secp256k1         | Backward compatibility, Ethereum-style recovery | 65 bytes (r+s+v) |
-| **ML-DSA-44**  | NIST FIPS 204 (Dilithium2-class parameter set) | Post-quantum resistance                      | ~2,420 bytes (compressed) |
-
-The final signature is the **concatenation** (or structured packing) of both parts, often described as:
-
-```
-"<hybrid ECDSA||ML-DSA-44>"
-```
-
-This is **not** a single mathematical construct like a Schnorr aggregate; it is two completely separate signatures that are verified **independently**.
+This page explains **how to read the idea**—what the two halves do, how they combine, and what verifiers check. Exact wire layouts and deployment details change over time; treat this as the **conceptual map**, not a byte-level specification.
 
 ---
 
-## 2. Why does Morpheum use this hybrid?
+## What is the hybrid?
 
-- **Ethereum compatibility** — The ECDSA part allows existing tooling, wallets, and verifiers (Ecrecover, etc.) to continue working.
-- **Quantum resistance** — The ML-DSA-44 part protects against future quantum attacks on the discrete-log problem.
-- **On-chain verification of delegated keys** — Only three chain types are allowed for on-chain delegated key verification: `ethereum`, `bls`, and `morpheum`. ECDSA_MLDSA44 is the Morpheum slot.
+**ECDSA_MLDSA44** is not one exotic math object. It is **two ordinary signatures**, both computed over the **same logical content** (the same fixed-size digest of what you intend to sign), then carried together as **one hybrid artifact**.
 
-The diagram below shows how one logical **message digest** fans out into two parallel signature paths (classical vs post-quantum), then merges into a single hybrid artifact:
+```mermaid
+flowchart TB
+  subgraph inputs [What you start from]
+    I[Intent: what is being authorized]
+    I --> D[Single message digest — a fixed fingerprint of that intent]
+  end
+
+  subgraph classical [Classical half]
+    D --> E[ECDSA on secp256k1]
+    E --> C[Signature suited to Ethereum-style tooling and recovery]
+  end
+
+  subgraph pq [Post-quantum half]
+    D --> M[ML-DSA-44 — NIST FIPS 204 family]
+    M --> Q[Signature aimed at long-term resistance to quantum attacks on discrete log]
+  end
+
+  C --> H[Hybrid artifact]
+  Q --> H
+```
+
+The classical piece is **small and familiar** to existing wallets and verifiers. The ML-DSA piece is **much larger**—that tradeoff is deliberate: you keep interoperability while adding a second, independent check rooted in **lattice assumptions** instead of elliptic-curve discrete log.
 
 ```mermaid
 flowchart LR
-  M[Message digest]
-  M --> E[ECDSA secp256k1]
-  M --> P[ML-DSA-44]
-  E --> S1[ECDSA signature]
-  P --> S2[ML-DSA signature]
-  S1 --> H[Hybrid payload]
-  S2 --> H
+  subgraph compare [Two checks, one decision]
+    direction TB
+    A[Verifier recomputes the same digest]
+    A --> B{Does the classical signature match?}
+    A --> C{Does the post-quantum signature match?}
+    B --> D{Both yes?}
+    C --> D
+    D -->|yes| OK[Hybrid accepted]
+    D -->|no| NO[Rejected]
+  end
 ```
 
----
-
-## 3. Address format (Morpheum-specific)
-
-- **ChainType**: `ChainTypeMorpheum`
-- **Address format**: Bech32m, prefix **`mr4m1…`** (or similar `mr4m` variant)
-- Example: `mr4m1q9…` (42–90 characters typical)
-
-The `types.Address` implementation supports:
-
-- Automatic inference from the `mr4m` prefix
-- Full validation via `clitool/validation.ValidateAddressByChain`
-- Conversion helpers and JSON marshalling consistent with other chains
+This is **not** a fused or aggregated signature like some multi-party schemes. Each algorithm could be described on its own; the hybrid simply **requires both to succeed**.
 
 ---
 
-## 4. Signing flow (how a signer produces the signature)
+## Why combine classical and post-quantum?
 
-When a signer uses a Morpheum key pair:
+```mermaid
+mindmap
+  root((Hybrid purpose))
+    Today
+      Existing wallets and patterns
+      Familiar recovery and compatibility
+    Tomorrow
+      Mitigate quantum risk against ECDLP-based schemes
+      Independent second factor at the signature level
+    Ecosystem
+      Morpheum-native identity slot alongside other chain families
+      Delegation rules that respect which “family” a key belongs to
+```
 
-1. The private key material actually contains **two** keys:
-   - ECDSA secp256k1 private key
-   - ML-DSA-44 private key
+**Ethereum-oriented compatibility** — The ECDSA half lets familiar workflows (including recovery-style reasoning where applicable) remain part of the story.
 
-2. The message is prepared as a normal EIP-712 typed-data payload (or raw payload for some flows).
+**Quantum awareness** — Shor-class attacks threaten discrete-log cryptography; ML-DSA adds a **separate** security story based on structured lattices, standardized as **ML-DSA** under **NIST FIPS 204**.
 
-3. Two signatures are generated:
-   - `ECDSA_sig = ECDSA.Sign(message_digest, secp256k1_sk)`
-   - `MLDSA_sig = ML_DSA_44.Sign(message_digest, mldsa_sk)`
+**Identity and delegation context** — In Morpheum’s world, **only certain signature families** are treated as valid for particular on-chain or policy checks. Morpheum’s native scheme occupies its own lane alongside other recognized families—so **you cannot substitute** one family’s delegation for another’s when the rules say “this lane only.”
 
-4. The two signatures (plus the public keys) are packaged together.
+---
 
-5. The final payload that is sent usually contains:
-   - `ecPubKeyHex` — the ECDSA public key (0x04… uncompressed)
-   - `mldsaPubKeyB64` — the ML-DSA-44 public key (base64)
-   - `signature` — the concatenated hybrid signature
+## Morpheum addresses
 
-This matches wallet-creation and agent-delegation examples in the standards tooling.
+A Morpheum address is a **short, human-readable string** (Bech32m-style) that encodes a commitment derived from **both** public keys: the **compressed** classical key material and a **hash** of the post-quantum public material. Prefixes such as **`mr4m`** (with witness-style segments like **`mr4m1…`**) identify this family at a glance.
 
-**End-to-end signing lifecycle** (policy and gateways still gate *when* keys are used):
+Conceptually:
+
+```mermaid
+flowchart LR
+  PKec[Classical public key — compact form]
+  PKpq[Post-quantum public key — larger fixed layout]
+  PKpq --> H[Hash of post-quantum key]
+  PKec --> C[Commitment mixing both]
+  H --> C
+  C --> Addr[Bech32m Morpheum address]
+```
+
+Length varies with encoding, but the **idea** is: one address **binds** the two keys that the hybrid signature will later prove control of.
+
+---
+
+## How signing works (conceptually)
+
+The signer holds **two private keys**—one for secp256k1, one for ML-DSA-44. For a given authorization:
+
+1. The **intent** is reduced to **one digest** (for many apps this is the hash of a **typed structured message** in the Ethereum sense—same conceptual role as “what is uniquely being signed”).
+2. That **same digest** is fed to **both** signing processes.
+3. The **hybrid output** carries the classical signature, the post-quantum signature, and is accompanied by **both public keys** so anyone can verify without guessing keys.
 
 ```mermaid
 sequenceDiagram
-  participant App as Application
-  participant Policy as Policy / gateway
-  participant Wallet as Signer
-  App->>Policy: Request authorized action
-  Policy->>App: Allow (limits, allowlists, HIL)
-  App->>Wallet: Build EIP-712 (or raw) + digest
-  Wallet->>Wallet: ECDSA.Sign(digest, secp256k1_sk)
-  Wallet->>Wallet: MLDSA44.Sign(digest, mldsa_sk)
-  Wallet->>App: ecPubKeyHex, mldsaPubKeyB64, hybrid signature
-  App->>App: Relay to verifier / chain
+  participant Intent as Intent to authorize
+  participant Digest as Single digest of that intent
+  participant Classical as Classical signer
+  participant PQ as Post-quantum signer
+  participant Bundle as What you publish
+
+  Intent ->> Digest: Agree what is being signed
+  Digest ->> Classical: Sign digest
+  Digest ->> PQ: Sign same digest
+  Classical ->> Bundle: Classical signature
+  PQ ->> Bundle: ML-DSA signature
+  Note over Bundle: Together with both public keys — verifiers run two checks
 ```
+
+Policy, gateways, and human-in-the-loop rules still decide **whether** signing is allowed—cryptography only proves **who agreed** to the digest, not whether the action was wise or permitted by policy.
 
 ---
 
-## 5. Verification flow (how the chain / verifier checks it)
+## How verification works (conceptually)
 
-The `UniversalSignatureVerifier` routes `SigType == ECDSA_MLDSA44` to the dedicated verifier (for example an `ecdsamldsa44_verifier` pattern).
+A verifier **never** treats the hybrid as a single opaque magic string. They:
 
-Typical verification steps:
-
-1. **Extract public keys** from the payload:
-   - `ecPubKey` from `ecPubKeyHex`
-   - `mldsaPubKey` from `mldsaPubKeyB64`
-
-2. **Compute the same message digest** the signer used (standard EIP-712 hash or the algorithm-specific hash for this SigType).
-
-3. **Verify both parts independently**:
-   - ECDSA part: `crypto.VerifySignature` or `Ecrecover` (recoverable)
-   - ML-DSA-44 part: `mldsa.Verify(pubKey, message, sig)`
-
-4. **Both must succeed** for the whole signature to be considered valid.
-
-5. **Agent-delegation / owner check**:
-   - If the recovered signer ≠ owner → fall through to `IsAgentApprovedForChain(owner, agent, action, "morpheum")`
-   - Chain-type validation is enforced (a delegation for `ethereum` cannot be used on `morpheum`).
-
-**Dual verification** (both gates must open):
+1. **Obtain both public keys** from the published material.
+2. **Recompute the digest** using the **same rules** the signer used (same intent, same domain, same serialization of the message).
+3. **Check the classical signature** against the digest and the classical public key.
+4. **Check the ML-DSA signature** against the digest and the post-quantum public key.
+5. **Accept only if both succeed**—then apply **policy**: owner vs agent, chain family, delegation scope, and so on.
 
 ```mermaid
 flowchart TD
-  P[Payload: pubkeys + hybrid sig + context]
-  P --> D[Recompute message digest]
-  D --> V1{ECDSA verifies?}
-  D --> V2{ML-DSA-44 verifies?}
-  V1 -->|no| F[Reject]
-  V2 -->|no| F
-  V1 -->|yes| A{Both yes?}
-  V2 -->|yes| A
-  A -->|no| F
-  A -->|yes| C[Delegation / chain-type checks]
-  C --> OK[Accept or route to agent policy]
+  Start[Published: hybrid + both public keys + context]
+  Start --> R[Recompute digest from the same intent rules]
+  R --> V1{Classical part valid?}
+  R --> V2{Post-quantum part valid?}
+  V1 -->|no| Fail[Invalid]
+  V2 -->|no| Fail
+  V1 -->|yes| Both{Both valid?}
+  V2 -->|yes| Both
+  Both -->|no| Fail
+  Both -->|yes| Policy[Policy: delegation, chain type, scope]
+  Policy --> Out[Accept or reject for this use case]
 ```
 
-**Delegation routing** (only three chain types for on-chain delegated key verification):
+Delegation logic is **orthogonal** to the math: even a valid hybrid must still match **who may act** and **for which chain family** the approval was granted.
 
 ```mermaid
 flowchart LR
-  subgraph allowed [Allowed for delegated key verification]
-    E[ethereum]
-    B[bls]
-    M[morpheum / ECDSA_MLDSA44]
+  subgraph lanes [Typical lanes for certain delegated-key checks]
+    L1[Ethereum-family expectations]
+    L2[BLS-family expectations]
+    L3[Morpheum native — this hybrid]
   end
-  X[Other chain types] -.->|not in this slot| N[Cannot substitute here]
+  Other[Other families] -.->|wrong lane| Blocked[Not interchangeable here]
 ```
 
 ---
 
-## 6. Where ECDSA_MLDSA44 is used in the system
+## ML-DSA-44 in one glance
 
-| Context                        | How it is used                                                                 |
-|--------------------------------|--------------------------------------------------------------------------------|
-| **Agent delegation**           | Owner can approve an agent using any SigType; on-chain verification of the agent’s generated keys is only allowed for `ethereum` / `bls` / `morpheum` |
-| **Multi-sign wallet creation** | Deploy and setup operations can be signed with `ECDSA_MLDSA44` (payload includes the two pubkeys) |
-| **On-chain verification**      | Only these three chain types are allowed for delegated key-pair verification   |
-| **Universal verifier**         | Routed automatically by `SigType` in `UniversalSignatureVerifier`              |
-| **types.Address**              | Full support (`ChainTypeMorpheum`, `mr4m` inference, validation caching, etc.) |
+**ML-DSA** (Module Lattice Digital Signature Algorithm) is the name standardized in **[NIST FIPS 204](https://csrc.nist.gov/publications/detail/fips/204/final)** for what grew out of **CRYSTALS-Dilithium**. **ML-DSA-44** is the **smaller, faster** approved parameter set—often discussed as the successor to older “Dilithium2”-scale profiles in pre-standard writing.
 
----
-
-## 7. ML-DSA-44 specification (NIST FIPS 204)
-
-**ML-DSA** (Module Lattice Digital Signature Algorithm) is the algorithm family standardized in **[NIST FIPS 204](https://csrc.nist.gov/publications/detail/fips/204/final)** (August 2024). It is the official name for what the **CRYSTALS-Dilithium** submission became after standardization. **ML-DSA-44** is one of three approved parameter sets; it is the **smaller / faster** option and is often described as the successor to the former “Dilithium2” profile in pre-standard literature.
-
-| Topic | Detail |
+| Idea | Plain language |
 | --- | --- |
-| **Hardness assumption** | Structured lattice problems over **module lattices** (Module-LWE / Module-SIS style assumptions), not elliptic-curve discrete log. |
-| **Security category** | **NIST Level 2** (ML-DSA-44)—intended to align with AES-128-ish classical security in NIST’s categorization; see FIPS 204 tables for exact claims. |
-| **Keys and signatures** | Public key, secret key, and signature sizes are **fixed** per parameter set; signatures and keys are **larger** than ECDSA—hence the hybrid: keep ECDSA for ecosystem fit, add ML-DSA for long-term quantum resistance. |
-| **API shape** | **Sign(sk, message)** → signature; **Verify(pk, message, signature)** → accept/reject. The message is typically a **digest** (e.g. 32-byte hash) in integrated protocols—match what your Morpheum deployment specifies. |
-| **Hybrid note** | In **ECDSA_MLDSA44**, ML-DSA signs the **same** digest as ECDSA (or the same logical message per spec); there is no single fused signature—verifiers run **two** checks. |
+| **What it rests on** | Hard problems on **module lattices**, not ECDLP. |
+| **Rough strength band** | **NIST Level 2** category for this parameter set—see FIPS 204 for precise statements. |
+| **Why it is bulky** | Keys and signatures are **much larger** than ECDSA; the hybrid keeps the small classical surface while adding PQ assurance. |
+| **In this hybrid** | Same digest as the classical half; **two** verification outcomes must both be true—there is still **no** single merged signature equation. |
 
-For background on **why** lattice PQC matters next to ECDSA in Web3, see [Quantum threat to signatures](/signing/quantum-threat).
-
----
-
-## 8. Summary
-
-A Morpheum signer holds two private keys (secp256k1 + ML-DSA-44). It signs the **same** EIP-712 digest with **both** algorithms, packs the two signatures and the two public keys into a single hybrid payload, and sends it. The verifier recomputes the digest, verifies the ECDSA part (for compatibility and recovery) **and** the ML-DSA-44 part (for quantum resistance), and only accepts the signature if **both** checks pass. Chain-type validation then decides whether this signature can be used for agent delegation or on-chain operations.
+For **why** lattice-based signatures matter beside ECDSA in Web3 timelines, see [Quantum threat to signatures](/signing/quantum-threat).
 
 ---
 
-## Layers: chain crypto vs Morpheum orchestration
+## Where this mental model lands in the stack
 
-| Layer | Responsibility | Examples |
-|-------|----------------|----------|
-| **Chain / protocol** | Digest definition, verification on-network | EIP-712 hash, hybrid ECDSA + ML-DSA checks |
-| **Application / standard** | Payload shape verifiable by counterparties | Agent delegation, wallet creation payloads |
-| **Morpheum stack** | Policy, identity, logging, gateway, agent execution | Allowlists, spend caps, MCP invocation |
+```mermaid
+flowchart TB
+  subgraph L1 [Message and digest layer]
+    M[What exactly is being signed — domain, types, intent]
+  end
 
-A **valid** signature on the wrong **network**, **domain**, or **policy** should still **fail closed** at the Morpheum or application layer even if the bytes are mathematically correct.
+  subgraph L2 [Cryptographic proof layer]
+    H[Hybrid: classical + ML-DSA on one digest]
+  end
+
+  subgraph L3 [Rules and orchestration]
+    P[Delegation, chain family, policy, gateways, agents]
+  end
+
+  M --> H
+  H --> P
+```
+
+A signature can be **cryptographically valid** yet **correctly rejected** if the **network**, **domain**, or **policy** does not match—**fail closed** is the right mental default.
 
 ---
 
-## Related product flows
+## Related reading
 
-- **x402** and **HTTP-native** authorization still depend on the **scheme** and **network**; see [Morpheum x402](/x402) and [Ethereum (EVM) signatures](/signing/ethereum-signature) when payloads are EVM-style.
-- **Agent wallets** and custody: [Agent wallet](/agent-wallet), [MWVM](/mwvm).
+- [Signing overview](/signing) — how Morpheum sits beside EVM, Solana, and Bitcoin
+- [Ethereum (EVM) signatures](/signing/ethereum-signature) — typed messages and the classical half
+- [Quantum threat to signatures](/signing/quantum-threat) — PQC context
+- [Morpheum x402](/x402) — HTTP-native flows where scheme and network still matter
+- [Agent wallet](/agent-wallet) and [MWVM](/mwvm) — custody and execution context
 
 ---
 
 ## See also
 
-- [Signing overview](/signing) — EVM, Solana, Bitcoin, Morpheum at a glance
-- [Ethereum (EVM) signatures](/signing/ethereum-signature) — EIP-712 and ECDSA context for the classical half
-- [Quantum threat to signatures](/signing/quantum-threat) — PQC planning and hybrid transitions
-- [Morpheum x402](/x402) — HTTP 402 flows and payment headers
-- [MCP](/mcp) — surfaces that may invoke paid or signed actions
+- [MCP](/mcp) — surfaces that may trigger paid or signed actions
