@@ -1,0 +1,58 @@
+---
+title: "Deploy an agent portal"
+sidebarTitle: "Agent portal"
+description: "Set up a Morpheum AgentPortal node for low-latency AI agents, automation, and agent-facing portal traffic"
+---
+
+## Who this is for
+
+Teams running **AI agents**, automation, or agent products that need optimized paths to chain data and portal features—without operating **consensus**. AgentPortal nodes tune behavior for **agent workloads** (latency, caching, and portal-oriented settings) rather than generic RPC alone.
+
+---
+
+## Before you start
+
+- **Workload:** Clarify expected **QPS**, payload sizes, and whether traffic is authenticated or public.
+- **Security:** Agent traffic often carries signatures and payments; apply **TLS**, **authentication**, and **rate limits** like any public API.
+- **Relationship to validators:** This role does **not** replace a validator. It participates in the network as a follower node with portal-focused configuration.
+
+---
+
+## Initialize the node
+
+1. Install the Morpheum CLI.
+2. Run **init** with role **agent-portal** (or the exact role name shown in the **init** subcommand’s help for your release).
+3. Set **data directory**, **moniker**, and **chain ID**.
+
+Post-init layouts may include **agent-related directories or templates**—follow any summary printed at the end of init for next steps.
+
+---
+
+## Configuration
+
+Review:
+
+- **Agent / portal** — Features that enable or tune portal behavior, shard affinity, or caching (names vary by release; use your generated config as the source of truth).
+- **API exposure** — Bind addresses suitable for your agents (internal network vs internet).
+- **Peers** — Good connectivity to stay near the chain tip for responsive agent actions.
+
+---
+
+## Run the node
+
+Start with **run** (non-validator). Monitor **latency**, **error rates**, and **cache hit rates** if your stack exposes them.
+
+Co-locate with agents or place in the same region as your agent fleet to meet latency goals.
+
+---
+
+## Related commands
+
+The CLI may expose an **agent** subcommand for registration and agent-specific workflows. See [Node CLI](/node/cli) for what your installed version supports.
+
+---
+
+## Related
+
+- [Node CLI](/node/cli)
+- [Deploy a full node](/node/deploy-full) — If you need a general operator node without portal specialization

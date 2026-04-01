@@ -1,0 +1,57 @@
+---
+title: "Deploy an archive node"
+sidebarTitle: "Archive"
+description: "Set up a Morpheum archive node for long retention, historical queries, and data-heavy workloads"
+---
+
+## Who this is for
+
+Teams that need **full or deep history**: block explorers, research, compliance exports, analytics over old state, or replay from early heights. Archive nodes prioritize **retention** over minimal disk use.
+
+---
+
+## Before you start
+
+- **Storage:** Plan for **large disks** and growth over time. Archive nodes are not a fit for small volumes.
+- **Performance:** Historical queries can be heavy; allocate enough RAM and fast storage for your query patterns (and consider separating query load from sync when possible).
+- **Role:** This node still **follows** the network; it does not replace a **validator** for consensus.
+
+---
+
+## Initialize the node
+
+1. Install the Morpheum CLI.
+2. Run **init** with role **archive**, set **data directory** on volumes sized for long-term retention, plus **moniker** and **chain ID**.
+
+Generated defaults typically **reduce or disable aggressive pruning** so historical data remains available—confirm in your configuration after init.
+
+---
+
+## Configuration
+
+Verify:
+
+- **Pruning / retention** — Matches your compliance or product requirement for how far back queries must go.
+- **RPC** — Often used for data APIs; secure and rate-limit public exposure.
+- **Peers** — Stable connectivity so sync stays current despite large state.
+
+---
+
+## Run the node
+
+Start with **run** (non-validator). Initial sync may take **much longer** than a pruned full node; monitor progress and disk.
+
+Schedule **backups** of the data directory according to your RPO/RTO; archive datasets are expensive to re-sync from scratch.
+
+---
+
+## When a full node is enough
+
+If you only need **recent** state and can tolerate pruned history, a [full node](/node/deploy-full) may be cheaper to operate.
+
+---
+
+## Related
+
+- [Node CLI](/node/cli)
+- [Nodes & roles overview](/node/index)

@@ -1,0 +1,58 @@
+---
+title: "Deploy a full node"
+sidebarTitle: "Full node"
+description: "Set up a Morpheum full node for operators, indexers, and applications that need current chain state without consensus"
+---
+
+## Who this is for
+
+Teams that need **up-to-date chain state**—indexers, application backends, analytics near the tip—without running **consensus**. A full node follows the network and applies committed updates; it does not vote.
+
+---
+
+## Before you start
+
+- **Hardware:** Less demanding than a validator for consensus, but still plan for steady disk I/O and enough capacity for pruned state at your expected chain growth.
+- **Access:** Decide whether this node is **internal only** (VPN, private network) or offers **limited APIs** to trusted clients. It is not a substitute for a dedicated **sentry** if you need a hardened public edge.
+
+---
+
+## Initialize the node
+
+1. Install the Morpheum CLI.
+2. Run **init** with role **full** (or the equivalent “full node” role name in your CLI version), set the **data directory**, **moniker**, and **chain ID**.
+
+This role typically receives **balanced defaults**: pruning suited to operators, RPC oriented toward internal or controlled use rather than anonymous public load.
+
+---
+
+## Configuration
+
+Review settings for:
+
+- **Pruning** — Appropriate for applications that do not need full history (contrast with [archive](/node/deploy-archive)).
+- **RPC / WebSocket** — Bind addresses and authentication if you expose APIs.
+- **Peers** — Bootstrap and persistent peers so the node stays well connected.
+
+---
+
+## Run the node
+
+Start with **run** using the same data directory. You do **not** enable validator mode.
+
+Use monitoring for sync status, lag behind the tip, and resource usage. Scale vertically or add more nodes if query load grows.
+
+---
+
+## When to choose something else
+
+- Need **deep history** and minimal pruning → [Archive node](/node/deploy-archive).
+- Need a **public, high-traffic** RPC edge → [Sentry](/node/deploy-sentry).
+- Need **agent-optimized** latency and portal behavior → [Agent portal](/node/deploy-agent-portal).
+
+---
+
+## Related
+
+- [Node CLI](/node/cli)
+- [Nodes & roles overview](/node/index)

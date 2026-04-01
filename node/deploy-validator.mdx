@@ -1,0 +1,64 @@
+---
+title: "Deploy a validator"
+sidebarTitle: "Validator"
+description: "Set up a Morpheum validator: keys, private peering, running the node, and keeping consensus infrastructure safe"
+---
+
+## Who this is for
+
+Teams that **operate consensus** on the network: producing and voting on blocks and executing the canonical state transition. Validators are high-trust; compromise of validator keys is a network-level incident.
+
+---
+
+## Before you start
+
+- **Hardware:** Plan for sustained CPU, fast storage, and reliable networking. Validators are not bursty batch jobs—they run continuously.
+- **Network:** Prefer **private peering** only. Validators should not serve as public RPC endpoints.
+- **Topology:** In production, place **sentry** nodes in front of validators so user and peer traffic hits sentries first. See [Deploy a sentry](/node/deploy-sentry).
+- **Keys:** You will create a **validator identity** during initialization. Back it up securely (offline copy, hardware security module, or your organization’s key policy). Never commit keys to source control or share them in chat.
+
+---
+
+## Initialize the node
+
+1. Install the Morpheum CLI for your platform.
+2. Run **init** with role **validator**, choosing a data directory on durable storage, a **moniker**, and the **chain ID** for the network you join.
+3. Complete any prompts for key generation unless you intentionally skip keys to import them separately (advanced).
+
+Confirm that validator keys exist only on this host (or in your approved secret store) and that filesystem permissions follow your security baseline.
+
+---
+
+## Configuration
+
+After init, review the generated configuration for:
+
+- **Consensus** — Enabled for validators.
+- **Peering** — Listen addresses and allowed peers aligned with **private** operation; avoid advertising a public RPC URL for this machine.
+- **Shards** — Match the network you operate on; use defaults unless your operator docs say otherwise.
+
+Edit configuration with care; invalid settings can prevent startup or cause missed participation.
+
+---
+
+## Run the node
+
+Start the node with **run**, pointing at the same data directory and enabling **validator** mode so voting and consensus match your role.
+
+Run the process under a **process manager** or **orchestrator** so it restarts on failure and rotates logs. Monitor health, disk space, and peer counts continuously.
+
+---
+
+## Security and operations
+
+- **Rotate and audit** access to the host; validators are high-value targets.
+- **Do not** expose validator ports to the open internet beyond what strict peering requires.
+- **Backup** keys and critical configuration; test restore procedures.
+- **Upgrade** in a controlled window; read release notes and coordinate with other validators on testnets first when possible.
+
+---
+
+## Related
+
+- [Node CLI](/node/cli) — `init` and `run` options.
+- [Deploy a sentry](/node/deploy-sentry) — Public-facing layer in front of validators.

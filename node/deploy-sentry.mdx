@@ -1,0 +1,60 @@
+---
+title: "Deploy a sentry"
+sidebarTitle: "Sentry"
+description: "Set up a Morpheum sentry node as a public RPC and peer gateway that shields validators from direct exposure"
+---
+
+## Who this is for
+
+Operators who need an **internet-facing** layer for RPC, WebSocket, and peer traffic while **validators stay private**. Sentries absorb noise, apply rate limits, and reduce attack surface on consensus keys.
+
+---
+
+## Before you start
+
+- **Topology:** Sentries sit **between** the public internet (or a wide user base) and **validators**. Validators peer with sentries; users and many light clients talk to sentries, not to validator IPs.
+- **Capacity:** Expect high connection counts and bursty traffic. Plan bandwidth, connection limits, and CPU for TLS and JSON-RPC workloads.
+- **Policy:** Configure **rate limiting**, IP allowlists or authentication where supported, and monitoring for abuse.
+
+---
+
+## Initialize the node
+
+1. Install the Morpheum CLI.
+2. Run **init** with role **sentry**, choosing a data directory on disks suitable for sustained I/O.
+3. Set **moniker** and **chain ID** to match the network.
+
+Role defaults usually enable **public RPC** semantics and higher connection limits than a typical full node—still validate against your version’s generated config.
+
+---
+
+## Configuration
+
+Pay special attention to:
+
+- **Public listeners** — Addresses and ports exposed to clients; put TLS termination in front if your deployment uses a reverse proxy or load balancer.
+- **Peering** — Connections toward **validators** (private) and toward the **wider network** as required by your network’s topology docs.
+- **Rate limits** — Essential for production public endpoints.
+
+---
+
+## Run the node
+
+Start with **run** (non-validator). Place behind **load balancers** or **anycast** if you operate multiple sentries for availability.
+
+Monitor error rates, latency, and connection churn. Alert on upstream validator health so you can shift traffic before user impact.
+
+---
+
+## Security
+
+- Sentries are public; **do not** store validator private keys on them.
+- Keep **validators** on separate hosts with strict firewall rules: only sentries and approved ops paths.
+- Patch and restart on a predictable cadence; public edges are common targets.
+
+---
+
+## Related
+
+- [Deploy a validator](/node/deploy-validator)
+- [Node CLI](/node/cli)

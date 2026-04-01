@@ -64,6 +64,33 @@
         ]
       },
       {
+        "tab": "Node",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "node/index"
+            ]
+          },
+          {
+            "group": "Node CLI",
+            "pages": [
+              "node/cli"
+            ]
+          },
+          {
+            "group": "Deploy by role",
+            "pages": [
+              "node/deploy-validator",
+              "node/deploy-full",
+              "node/deploy-sentry",
+              "node/deploy-archive",
+              "node/deploy-agent-portal"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Engines",
         "groups": [
           {

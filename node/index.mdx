@@ -1,0 +1,52 @@
+---
+title: "Nodes & roles"
+sidebarTitle: "Overview"
+description: "Choose a Morpheum node role—Validator, Full, Sentry, Archive, or AgentPortal—and follow deployment guides for each"
+---
+
+## What is a node?
+
+A **node** is the software you run to join the Morpheum network: it synchronizes state, participates in peer-to-peer networking, and—depending on role—may take part in consensus or serve public APIs. You pick a **role** when you first set up the machine; the role determines what the node is allowed to do, how it should be exposed on the network, and how much history it keeps.
+
+This section is for **operators and integrators** who need to deploy and run nodes, not for low-level implementation details.
+
+---
+
+## Choosing a role
+
+| Role | Best for | Consensus | Typical network posture |
+|------|-----------|-----------|-------------------------|
+| **Validator** | Securing the chain and executing the canonical state transition | Yes | Private peers only; do not expose public RPC here |
+| **Full** | Indexers, apps, and teams that need current chain state without voting | No | Private or team-scoped access |
+| **Sentry** | Public RPC and WebSocket traffic in front of validators | No | Internet-facing; rate limits and DDoS protection |
+| **Archive** | Analytics, explorers, and workflows that need deep history | No | Often API-oriented; large storage |
+| **AgentPortal** | Low-latency AI and agent workloads against the network | No | Tuned for agent traffic and portal features |
+
+Validators **execute** transactions and participate in consensus. All other roles **follow** the chain by applying committed updates produced elsewhere—they do not replace a validator for safety-critical execution.
+
+**Public APIs** (RPC, WebSocket, JSON-RPC, agent portals) belong on **Sentry**, **Full**, **Archive**, or **AgentPortal** nodes as your policy allows—not on validators.
+
+---
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Command-line interface" icon="terminal" href="node/cli">
+    Initialize a data directory, run the node, snapshots, genesis helpers, and agent-related commands.
+  </Card>
+  <Card title="Deploy a validator" icon="shield-check" href="node/deploy-validator">
+    Keys, private peering, and running a consensus node safely.
+  </Card>
+  <Card title="Deploy a full node" icon="server" href="node/deploy-full">
+    Default-style node for operators and indexers.
+  </Card>
+  <Card title="Deploy a sentry" icon="globe" href="node/deploy-sentry">
+    Public gateway in front of validators.
+  </Card>
+  <Card title="Deploy an archive node" icon="database" href="node/deploy-archive">
+    Long retention and historical queries.
+  </Card>
+  <Card title="Deploy an agent portal" icon="robot" href="node/deploy-agent-portal">
+    AI- and agent-optimized deployment.
+  </Card>
+</Columns>

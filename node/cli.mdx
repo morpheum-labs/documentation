@@ -1,0 +1,88 @@
+---
+title: "Node CLI"
+sidebarTitle: "CLI"
+description: "Morpheum node commands: initialize data directories, run the node, genesis, snapshots, and agent helpers"
+---
+
+## Overview
+
+The **Morpheum CLI** is the command-line tool for everyday node operations: preparing a machine, starting the node, working with genesis and snapshots, and using agent-related commands. Commands are organized as subcommands; parsing and behavior are designed to stay stable as the stack evolves.
+
+---
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| **run** | Start the node using an existing data directory and configuration |
+| **init** | Create the data directory, configuration, and keys for a chosen role |
+| **generate-genesis** | Build genesis artifacts from your configuration (chain bootstrap) |
+| **snapshot** | Create, restore, or list snapshots of node state |
+| **agent** | Agent-oriented operations (for example registration and workflows that integrate with AI agents) |
+
+Use `--help` on the main binary or on any subcommand for the full flag list supported by your installed version.
+
+---
+
+## Data directory
+
+Most commands accept a **data directory** where configuration, keys, chain data, logs, and related files live. If you do not pass one, the CLI uses a default under your home directory (commonly `~/.morpheum`). Production deployments often set an explicit path on dedicated disks, for example `/data/morpheum`.
+
+---
+
+## Initialize (`init`)
+
+**Purpose:** First-time setup for **any** role. Creates the folder layout, writes role-appropriate configuration, and optionally generates keys.
+
+Typical inputs:
+
+- **Role** — Select validator, full, sentry, archive, or agent-portal so defaults match how you will run the node.
+- **Data directory** — Where all files will be stored.
+- **Moniker** — A human-readable name for logs and telemetry.
+- **Chain ID** — The network identifier you intend to join or bootstrap.
+- **Shard count** — Often auto-suggested per role; advanced operators may override.
+
+**Validator note:** Validator identity keys are created only when you initialize as a validator. Treat those keys like high-value secrets: back them up offline and restrict filesystem permissions.
+
+**Flags you may see:** Force overwriting an existing directory, skip key generation for CI or imported keys, and other safety switches—see the **init** subcommand’s help output.
+
+---
+
+## Run (`run`)
+
+**Purpose:** Start the node after `init` (and any required genesis or network setup for your environment).
+
+Typical inputs:
+
+- **Data directory** — Must match the directory you initialized.
+- **Validator mode** — When your deployment is a validator, use the validator flag so the process runs with voting and consensus enabled as defined in your config.
+
+You can point to an alternate **configuration file** if you manage config outside the default path.
+
+The process stays in the foreground until shutdown (for example Ctrl+C or a service manager stop). For production, run it under **systemd**, **supervisor**, or a container orchestrator with restart policies and log collection.
+
+---
+
+## Generate genesis (`generate-genesis`)
+
+**Purpose:** Produce genesis binaries or artifacts from your `config.yaml` (or equivalent), for testnets or custom chain launches. Not needed for joining an existing public network that already published a genesis.
+
+---
+
+## Snapshot (`snapshot`)
+
+**Purpose:** **Create** checkpoints of state for backup or faster restarts, **restore** from a snapshot, or **list** what is available. Useful after large syncs or before upgrades.
+
+---
+
+## Agent (`agent`)
+
+**Purpose:** Subcommands for **AI agents** and automation flows (for example integrations with payments, identity, or reputation, depending on network features). Use this when you operate agent infrastructure alongside a node.
+
+---
+
+## Everyday tips
+
+- Prefer **role-specific init** so defaults for peering, pruning, RPC exposure, and agent settings match your deployment.
+- **Validators** should run behind **sentry** nodes for public traffic; do not point end users directly at validator endpoints.
+- After upgrades, read release notes for new flags or deprecated options—`--help` remains the authoritative list for your binary version.
