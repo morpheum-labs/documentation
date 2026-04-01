@@ -1,11 +1,38 @@
 ---
 title: "MCP"
-description: "Model Context Protocol integration with Morpheum"
+description: "What the Model Context Protocol is, when to use it, and how it fits Morpheum"
 ---
 
-## Overview
+## Introduction
 
-Use the **Model Context Protocol (MCP)** to connect Morpheum-capable tools and agents to editors, IDEs, and automation that speak MCP.
+**Model Context Protocol (MCP)** is an open standard for connecting AI assistants to data and tools. Instead of baking every integration into a single app, you run small **MCP servers** that expose **tools** (actions), **resources** (read-only data), and optional **prompts** to any **MCP client** that speaks the protocol.
+
+For Morpheum users, MCP is the bridge between editors, IDEs, and autonomous agents on one side and trading, risk, and documentation workflows on the other. This page explains MCP in general terms first, then how we use it in this ecosystem.
+
+## What is MCP?
+
+Think of MCP as a **USB-C for AI tools**: one protocol, many devices. A typical setup looks like this:
+
+- **Client** — An application that runs the model and connects outward (for example Cursor, Claude Desktop, or a custom agent runtime).
+- **Server** — A process that implements MCP and advertises what it can do (list tools, execute a tool, read a resource).
+- **Transport** — How client and server talk: often **stdio** (local process) or **HTTP** (remote or containerized servers).
+
+The assistant does not need to know your REST paths or SQL by heart. It discovers capabilities through the protocol, calls tools with structured arguments, and gets structured results back—so integrations stay **composable** and **versionable** separate from the client.
+
+## What to use MCP for
+
+Use MCP when you want **repeatable, model-driven access** to systems that are awkward to paste into a chat by hand:
+
+- **IDE and editor workflows** — Give the assistant project-aware tools: query docs, run linters, hit internal APIs, or wrap your existing CLI without forking the editor.
+- **Agents and automation** — Let a long-running agent call the same tool surface a human would, with explicit schemas and audit-friendly boundaries.
+- **API and service wrappers** — Expose REST, gRPC, or WebSocket-backed behavior as named tools so the model chooses *when* to call them instead of embedding raw URLs in prompts.
+- **Documentation and knowledge** — Serve curated resources (specs, runbooks, parameter lists) so the model pulls **current** context instead of stale training data.
+
+Avoid treating MCP as a replacement for **direct programmatic integration** when you need hard latency guarantees, batch jobs with no LLM in the loop, or strict offline-only pipelines—in those cases, call APIs from your code directly.
+
+## Morpheum and MCP
+
+Use MCP with Morpheum-capable tools and agents to connect **Morpheum** to editors, IDEs, and automation that speak MCP.
 
 This section documents how Morpheum exposes or consumes MCP servers for trading, risk, and documentation workflows. Details will expand as the integration stabilizes.
 

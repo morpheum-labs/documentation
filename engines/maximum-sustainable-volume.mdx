@@ -20,13 +20,13 @@ $$
 V_{\mathrm{day}} = \sum_{i=1}^{N} v_i = N\,\bar{v}.
 $$
 
-Per-swap work is dominated by $O(\log n)$ tick traversal plus ReClamm glide (exponentiation in virtual balance updates). Write $f_{\mathrm{swap}}$ for sustained swaps per second per shard and $\bar{s}$ for typical trade size (USD). Over $T = 86400\,\mathrm{s}$:
+Per-swap work is dominated by $O(\log n)$ tick traversal plus ReClamm glide (exponentiation in virtual balance updates). Write *f*<sub>swap</sub> for sustained swaps per second per shard and $\bar{s}$ for typical trade size (USD). Over $T = 86400\,\mathrm{s}$:
 
 $$
 V_{\mathrm{comp}} \approx N \cdot f_{\mathrm{swap}} \cdot \bar{s} \cdot T.
 $$
 
-**Sustainable** capacity assumes latency, consensus, and glide/oracle margins stay within design envelopes; **burst** capacity allows temporary elevation of $f_{\mathrm{swap}}$ and $\bar{v}$ at the cost of higher tail latency and throttle risk.
+**Sustainable** capacity assumes latency, consensus, and glide/oracle margins stay within design envelopes; **burst** capacity allows temporary elevation of *f*<sub>swap</sub> and $\bar{v}$ at the cost of higher tail latency and throttle risk.
 
 ---
 
@@ -65,14 +65,14 @@ $$
 
 **$20–50+ billion / day** (short bursts, 1–3 days)
 
-Let $\beta > 1$ be a **burst multiplier** on per-shard daily notional (caching, batching, CLOB-heavy routing). With $N_{\mathrm{burst}} \gtrsim 200$ and $\bar{v}_{\mathrm{burst}} \in [2.5\times 10^{8},\,5\times 10^{8}]$ USD/day:
+Let $\beta \gt 1$ be a **burst multiplier** on per-shard daily notional (caching, batching, CLOB-heavy routing). With *N*<sub>burst</sub> $\gtrsim 200$ and $\bar{v}$<sub>burst</sub> $\in [2.5\times 10^{8},\,5\times 10^{8}]$ USD/day:
 
 $$
 V_{\mathrm{burst}} = N_{\mathrm{burst}}\,\bar{v}_{\mathrm{burst}} \approx \beta\,N\,\bar{v}
 \;\in\; [2\times 10^{10},\,5\times 10^{10}] \;\text{USD/day}.
 $$
 
-- **Full activation**: $N_{\mathrm{burst}} \gtrsim 200$, aggressive caching (in-memory + transient virtual states), SIMD/vectorized batching in `reclamm_math.go`, and CLOB-hybrid routing for $>80\%$ of volume.
+- **Full activation**: *N*<sub>burst</sub> $\gtrsim 200$, aggressive caching (in-memory + transient virtual states), SIMD/vectorized batching in `reclamm_math.go`, and CLOB-hybrid routing for $\gt 80\%$ of volume.
 - **Per-shard burst**: up to $\sim 2.5\times 10^{8}‐5\times 10^{8}$ USD/day during frenzies (analogous to concentrated HIP-3 style sub-markets posting $\mathcal{O}(10^{9})$ USD single-pair volume in short windows).
 - **Total burst**: aligns with top perp DEX days ($\sim 9\times 10^{9}‐1.4\times 10^{10}$ USD perp spikes) or Uniswap-scale monthly peaks annualized to multi–billion-dollar daily bursts.
 
@@ -82,38 +82,38 @@ $$
 (c \geq m) \;\wedge\; (|\hat{p} - p_{\mathrm{oracle}}| / p_{\mathrm{oracle}} \leq \delta),
 $$
 
-beyond which $V_{\mathrm{day}}$ is capped toward the **$30$–$50\,\mathrm{B}/\mathrm{day}$** band before invariants force slowdown.
+beyond which *V*<sub>day</sub> is capped toward the **$30$–$50\,\mathrm{B}/\mathrm{day}$** band before invariants force slowdown.
 
 ---
 
 ## Key limiting factors and bottlenecks (IMO-style multi-dimensional analysis)
 
-To assert the bound rigorously (stepping back like IMO problem decomposition), each dimension supplies an inequality on $V_{\mathrm{day}}$.
+To assert the bound rigorously (stepping back like IMO problem decomposition), each dimension supplies an inequality on *V*<sub>day</sub>.
 
 ### 1. Computational dimension
 
-Per shard, feasible sustained swap rate $f_{\mathrm{swap}} \in [10^{4},\,10^{5}]\,\mathrm{s}^{-1}$ (Go + fine-grained locking) and typical trade size $\bar{s} \in [10^{3},\,10^{4}]$ USD. The **raw** notional flux per shard is $q = f_{\mathrm{swap}}\,\bar{s}$ (USD/s), so:
+Per shard, feasible sustained swap rate *f*<sub>swap</sub> $\in [10^{4},\,10^{5}]\,\mathrm{s}^{-1}$ (Go + fine-grained locking) and typical trade size $\bar{s} \in [10^{3},\,10^{4}]$ USD. The **raw** notional flux per shard is *q* = *f*<sub>swap</sub>$\,\bar{s}$ (USD/s), so:
 
 $$
 V_{\mathrm{comp}}^{\mathrm{raw}} = N\,q\,T = N\,f_{\mathrm{swap}}\,\bar{s}\,T.
 $$
 
-In principle $V_{\mathrm{comp}}^{\mathrm{raw}}$ is enormous at these $f_{\mathrm{swap}}$ and $\bar{s}$; the **operational** bound on $V_{\mathrm{day}}$ is not set here but by GC pauses, cache coherence, and the $O(\log n)$ + glide serial path, which cap realized throughput orders of magnitude below naive $f_{\mathrm{swap}}\,\bar{s}$ — leaving headroom in the $\$10^{10}‐\$10^{11}$/day **engineering** range before other dimensions dominate.
+In principle *V*<sub>comp</sub><sup>raw</sup> is enormous at these *f*<sub>swap</sub> and $\bar{s}$; the **operational** bound on *V*<sub>day</sub> is not set here but by GC pauses, cache coherence, and the $O(\log n)$ + glide serial path, which cap realized throughput orders of magnitude below naive *f*<sub>swap</sub>$\,\bar{s}$ — leaving headroom in the $\$10^{10}‐\$10^{11}$/day **engineering** range before other dimensions dominate.
 
 ### 2. Consensus / async complexity dimension
 
-With sub-DAGs per shard, throughput scales nearly linearly in $N$ until greedy shard assignment skew or coordinator limits appear. Let $\alpha(N)$ be effective throughput efficiency ( $\alpha \approx 1$ for $N \lesssim 200$–$300$ ). Cross-shard $2$PC introduces abort probability $p_{\mathrm{abort}}(N)$; staying under $p_{\mathrm{abort}} < 10^{-2}$ keeps:
+With sub-DAGs per shard, throughput scales nearly linearly in $N$ until greedy shard assignment skew or coordinator limits appear. Let $\alpha(N)$ be effective throughput efficiency ( $\alpha \approx 1$ for $N \lesssim 200$–$300$ ). Cross-shard $2$PC introduces abort probability *p*<sub>abort</sub>($N$); staying under *p*<sub>abort</sub> $\lt 10^{-2}$ keeps:
 
 $$
 V_{\mathrm{cons}} \;\lesssim\; \alpha(N)\,N\,\bar{v}, \qquad
-\alpha(N) \to \alpha_{\infty} < 1 \quad \text{where} \quad N \to \infty,
+\alpha(N) \to \alpha_{\infty} \lt 1 \quad \text{where} \quad N \to \infty,
 $$
 
-yielding a soft cap in the $\$3\times 10^{10}‐\$5\times 10^{10}$/day range before $p_{\mathrm{abort}}$ exceeds $1\%$.
+yielding a soft cap in the $\$3\times 10^{10}‐\$5\times 10^{10}$/day range before *p*<sub>abort</sub> exceeds $1\%$.
 
 ### 3. State / storage dimension
 
-Let $\Delta S$ be compressed state delta per day. For $V_{\mathrm{day}} \sim 5\times 10^{10}$ USD, engineering targets keep:
+Let $\Delta S$ be compressed state delta per day. For *V*<sub>day</sub> $\sim 5\times 10^{10}$ USD, engineering targets keep:
 
 $$
 \Delta S \;\lesssim\; 10\,\text{GB/day}
@@ -123,13 +123,13 @@ $$
 
 ### 4. Economic / MEV dimension
 
-Hook fees and MEV-aware routing imply an increasing **effective cost** per unit notional at extreme $V_{\mathrm{day}}$, producing self-throttling in a band compatible with $\$2\times 10^{10}‐\$4\times 10^{10}$/day before LP and arb externalities dominate.
+Hook fees and MEV-aware routing imply an increasing **effective cost** per unit notional at extreme *V*<sub>day</sub>, producing self-throttling in a band compatible with $\$2\times 10^{10}‐\$4\times 10^{10}$/day before LP and arb externalities dominate.
 
 ### 5. Real-world analog dimension
 
 - Hyperliquid perp peaks: $\sim 9\times 10^{9}‐1.4\times 10^{10}$ USD/day (single chain, not fully sharded like Morpheum).
 - Uniswap V3 monthly records imply $\sim 3\times 10^{9}‐4\times 10^{9}$ USD/day burst equivalents.
-- Morpheum sharding and gasless DAG imply a multiplier $\kappa \in [5,\,15]$ on analog single-chain spot figures, consistent with $V_{\mathrm{sust}}$ and $V_{\mathrm{burst}}$ above.
+- Morpheum sharding and gasless DAG imply a multiplier $\kappa \in [5,\,15]$ on analog single-chain spot figures, consistent with *V*<sub>sust</sub> and *V*<sub>burst</sub> above.
 
 ---
 

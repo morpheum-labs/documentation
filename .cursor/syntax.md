@@ -10,11 +10,14 @@ Goal: Write MDX that compiles cleanly on first try in Mintlify preview & build.
 ## 1. Never use raw < or > in prose / tables / headings (they are parsed as JSX)
 
 ❌ Bad (breaks parser):
-- deviation >δ
-- slippage <1%
-- n > n/2
-- price >$100K
-- (e.g., < 0.5%)   ← leading < in parentheses can still be parsed as JSX
+
+```text
+deviation >δ
+slippage <1%
+n > n/2
+price >$100K
+(e.g., < 0.5%)   ← leading < in parentheses can still be parsed as JSX
+```
 
 ✅ Good:
 - deviation &gt; δ  (prefer HTML entities in prose)
@@ -23,9 +26,12 @@ Goal: Write MDX that compiles cleanly on first try in Mintlify preview & build.
 - (e.g., &lt; 0.5%)
 
 ✅ Also acceptable when space is unambiguous:
-- deviation > δ
-- slippage < 1%
-- n > n/2
+
+```text
+deviation > δ
+slippage < 1%
+n > n/2
+```
 
 Rule: **Prefer HTML entities `&lt;` and `&gt;`** for comparisons in prose so the parser never treats them as JSX. Use space around < and > only when you are sure the context is safe (e.g. inside code or math). In tables and list items, always use entities.
 
@@ -99,7 +105,7 @@ Details...
 <Step title="Step 1">...</Step>
 </Steps>
 
-Do NOT invent custom tags like <Warning> or <FormulaBlock> — they will fail.
+Do NOT invent custom tags like `Warning` or `FormulaBlock` (do not use angle-bracket component names you did not import) — they will fail.
 
 ## 5. Avoid bare `*` between variables in prose (parsed as emphasis)
 

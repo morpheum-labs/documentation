@@ -1,6 +1,6 @@
 ---
-title: "Morpheum x402 Deep Dive"
-sidebarTitle: "x402 deep dive"
+title: "Morpheum x402"
+sidebarTitle: "x402"
 description: "Introduction to x402, general protocol knowledge, Morpheum native integration, production spec with diagrams, flows, and roadmap (March 2026)"
 ---
 
@@ -191,6 +191,8 @@ Morpheum is a **native superset**: Exact external interfaces + superior on-chain
 ### Cross-Chain
 
 - GMP bridges propagate payment proofs; CAIP IDs ensure portability.
+
+For cross-chain settlement design (relay, adapters, bridge path, security, and testing strategy), see [Cross-chain x402](/x402/cross-chain).
 
 All flows are **sub-ms** on AgentPortal nodes, atomic with validation/reputation updates.
 
@@ -484,5 +486,6 @@ Official x402.org, Coinbase CDP docs, GitHub repo/specs (exact_evm, v1/v2), Clou
 
 ## See also
 
+- [Cross-chain](/x402/cross-chain) for settlement architecture, CAIP identifiers, and GMP flows.
 - [Agent wallet](/agent-wallet) for funded agent calls.
 - [MCP](/mcp) when exposing Morpheum actions as tools behind a payment gate.

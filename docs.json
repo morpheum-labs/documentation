@@ -19,7 +19,14 @@
               "index",
               "quickstart",
               "mcp",
-              "x402",
+              {
+                "group": "x402",
+                "root": "x402/index",
+                "pages": [
+                  "x402/cross-chain"
+                ]
+              },
+              "signing/index",
               "agent-wallet",
               "mwvm"
             ]
