@@ -92,6 +92,12 @@
               "engines/reclamm-glide-mechanics",
               "engines/reclamm-slippage-impact-analysis"
             ]
+          },
+          {
+            "group": "Curves",
+            "pages": [
+              "engines/curves/bonding-curve"
+            ]
           }
         ]
       },
