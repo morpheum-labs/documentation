@@ -1,0 +1,56 @@
+---
+title: "SDK"
+description: "Official Morpheum SDK (Rust + TypeScript), MWVM agent runtime, and related integration surfaces"
+---
+
+## Overview
+
+Morpheum exposes **SDK-style surfaces** at different layers: **chain and product APIs** ([morpheum-sdk](https://github.com/morpheum-labs/morpheum-sdk) for Rust, [morpheum-sdk-ts](https://github.com/morpheum-labs/morpheum-sdk-ts) for TypeScript), a **WASM agent runtime** (MWVM), and **protocol gateways** for tools and payments. Use this page to pick the right path and jump to the detailed guides.
+
+## Morpheum SDK (Rust + TypeScript)
+
+The product API is implemented as a **Rust** workspace and a **TypeScript** package in separate repositories. Capabilities align across stacks (signing, markets, VCs, transport), but install paths and docs live with each repo.
+
+| Language | Repository | Notes |
+| -------- | ---------- | ----- |
+| **Rust** | **[morpheum-sdk](https://github.com/morpheum-labs/morpheum-sdk)** | Native CLI, bots, and agents; **`morpheum-sdk-native`** and feature-gated crates (`market`, `vc`, `auth`). |
+| **TypeScript** | **[morpheum-sdk-ts](https://github.com/morpheum-labs/morpheum-sdk-ts)** | Browser and Node; same conceptual API surface as the Rust SDK. |
+
+| Topic | Notes |
+| ----- | ----- |
+| **Facade** | Unified `MorpheumSdk` entry point for operations across the stack. |
+| **Signers** | **NativeSigner**, **AgentSigner** (with TradingKeyClaim), MetaMask, Phantom, Taproot, and related flows. |
+| **Capabilities** | Sign transactions, issue/revoke VCs, create markets, and more—via fluent builders and pluggable **gRPC + HTTP** transport. |
+| **Modules** | Rust: feature-gated crates so you compile only what you need. |
+
+**Rust — upstream docs:** [README](https://github.com/morpheum-labs/morpheum-sdk/blob/main/README.md), [API Reference](https://github.com/morpheum-labs/morpheum-sdk/blob/main/API_REFERENCE.md), [Full guide](https://github.com/morpheum-labs/morpheum-sdk/blob/main/DOCUMENTATION.md), [Architecture](https://github.com/morpheum-labs/morpheum-sdk/blob/main/ARCHITECTURE.md).
+
+**TypeScript — upstream docs:** [morpheum-sdk-ts](https://github.com/morpheum-labs/morpheum-sdk-ts) — start with the repo [README](https://github.com/morpheum-labs/morpheum-sdk-ts/blob/main/README.md).
+
+Installation (**Cargo** for Rust, **npm** for TypeScript), versions, and feature flags are documented in each repo’s README.
+
+## Agent runtime (MWVM)
+
+**MWVM** is the primary SDK for building and running Morpheum agents with **chain-parity WASM**. It ships **Rust** and **TypeScript** entry points on top of the same guest ABI and host capabilities.
+
+| Surface | Role |
+| -------- | ---- |
+| **Rust** | `mwvm::AgentRuntime::new()` — async host calls; backends, CLIs, embedded runners. |
+| **TypeScript** | **mwvm-js** — WASM bindings for browsers and Node-style environments. |
+
+For wasmtime, inference, simulation, orchestration, and gateways (MCP, A2A, DID, x402), see **[MWVM](/mwvm)**.
+
+## Wallets and signing
+
+To fund execution paths and sign where your stack requires it, use **[Agent wallet](/agent-wallet)** and the **[Signing](/signing)** guides (Ethereum, Solana, Bitcoin, Morpheum, and related topics). For programmatic signing and claims in app code, use **[morpheum-sdk](https://github.com/morpheum-labs/morpheum-sdk)** (Rust) or **[morpheum-sdk-ts](https://github.com/morpheum-labs/morpheum-sdk-ts)** (TypeScript) where it matches your stack.
+
+## APIs and automation
+
+- **[MCP](/mcp)** — Model Context Protocol for tools, editors, and agent automation.
+- **[x402](/x402)** — HTTP 402–style paid APIs and metered access; start from the x402 overview and **[cross-chain](/x402/cross-chain)** where relevant.
+
+## Next steps
+
+- New to the docs: **[Quickstart](/quickstart)** — pick MCP, CLI, or SDK and map your product type.
+- Chain and product API: **[morpheum-sdk](https://github.com/morpheum-labs/morpheum-sdk)** (Rust), **[morpheum-sdk-ts](https://github.com/morpheum-labs/morpheum-sdk-ts)** (TypeScript).
+- Run agents locally: **[MWVM](/mwvm)** — [github.com/morpheum-labs/mwvm](https://github.com/morpheum-labs/mwvm).

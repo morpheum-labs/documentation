@@ -19,6 +19,7 @@
               "index",
               "quickstart",
               "mcp",
+                 "dex-cli",
               {
                 "group": "x402",
                 "root": "x402/index",
@@ -38,27 +39,8 @@
                 ]
               },
               "agent-wallet",
-              "mwvm"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "mwvm",
+              "sdk"
             ]
           }
         ]
@@ -171,7 +153,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:support@morpheum.io"
       }
     ],
     "primary": {

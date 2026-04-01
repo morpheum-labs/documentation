@@ -1,66 +1,108 @@
 ---
 title: "Quickstart"
-description: "Get started with Morpheum documentation and policy in a few steps"
+description: "Choose MCP, DEX CLI, or SDK by integration depth and how you operate Morpheum"
 ---
 
-## About this quickstart
+## What this guide does
 
-This guide gets you from zero to a working local setup so you can read, edit, and preview the **Morpheum policy and API docs**. It is written for developers and agents: short steps, clear commands, no extra jargon.
+Use this page to **pick an integration surface**—[MCP](/mcp), [DEX CLI](/dex-cli), or [SDK](/sdk)—and to **match your product** (AI agents, wallets, exchange UIs, bots) to the **level of integration** and **day-to-day activity** you are willing to own.
 
-**You will:**
+You do not need every path. One team might live entirely in MCP tools; another ships a custom UI on TypeScript SDK only.
 
-1. Set up your local environment (clone repo, run the docs preview).
-2. Deploy or share your changes (e.g. via GitHub and Mintlify).
-3. Go live or iterate (commit, push, and optionally publish).
+## Integration surfaces at a glance
 
-No Morpheum node or API keys are required to work on this documentation site.
+| Surface | Best for | You implement | Typical operator |
+| ------- | -------- | ------------- | ---------------- |
+| **[MCP](/mcp)** | Model-driven workflows in IDEs and agents | MCP server or config that calls APIs/CLI/SDK | Developers and agent operators |
+| **[DEX CLI](/dex-cli)** | Scripts, ops, CI, and “human in the loop” chain actions | Shell/Make, automation around `morpheum-cli` | DevOps, traders, support |
+| **[SDK](/sdk)** | Products: wallets, web apps, bots, embedded agents | Rust or TypeScript against chain APIs; optional [MWVM](/mwvm) | Application engineers |
 
-## Get started in three steps
+**Rule of thumb:** MCP is for **assistants and agents that discover tools**; CLI is for **repeatable commands without embedding a library**; SDK is for **software you ship** (including agents built in code, not only via MCP).
 
-### Step 1: Set up your local environment
+## Levels of integration
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone the docs repository">
-    You need the repo that contains this documentation (e.g. the policy/docs repo). Get the clone URL from your [Mintlify dashboard](https://dashboard.mintlify.com) or your Git host.
-    
-    To clone it locally, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Go to the docs directory (where `docs.json` lives) and run: `mint dev`
-    3. Open `http://localhost:3000` to view the docs.
-    
-    <Tip>Edits to MDX files refresh automatically in the browser.</Tip>
-  </Accordion>
-</AccordionGroup>
+Use these three levels to decide **how deep** you couple to Morpheum—not how “good” your product is.
 
-### Step 2: Deploy your changes
+### Level 1 — Tooling and operations
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install the Mintlify GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    The app deploys your docs when you push, so you don't need to run your own deployment pipeline.
-  </Accordion>
-  <Accordion icon="palette" title="Update site name and colors">
-    For a first change, update the docs site name and colors:
+- **What you do:** Query state, submit occasional transactions, wrap existing behavior for an assistant, or run scripted flows.
+- **Surfaces:** MCP (tools/resources), DEX CLI, thin SDK scripts.
+- **Ownership:** Low ongoing app surface; you maintain configs, scripts, or a small MCP server.
+- **Fit when:** You are exploring, automating personal workflows, or supporting a team with chat- or terminal-driven actions.
 
-    1. Open `docs.json` in the repo root.
-    2. Change the `"name"` field to your project name (e.g. "Morpheum Policy").
-    3. Update the `"colors"` to match your brand.
-    4. Save; the preview at `http://localhost:3000` updates immediately.
+### Level 2 — Product integration
 
-    <Tip>Try changing the primary color to see the effect right away.</Tip>
-  </Accordion>
-</AccordionGroup>
+- **What you do:** Embed signing, markets, and transport in an application with a clear UX (wallet connect, order forms, dashboards).
+- **Surfaces:** Primarily **[SDK](/sdk)** (Rust or TypeScript); MCP may still exist for **internal** agent tooling alongside the app.
+- **Ownership:** You ship releases, handle keys and policy, and monitor usage.
+- **Fit when:** You build a **wallet**, **trading UI**, **third-party exchange front end**, or a **bot** that is not just a script.
 
-### Step 3: Go live
+### Level 3 — Agent runtime and chain-parity execution
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. If the Mintlify app is installed, the docs site will update automatically.
-</Accordion>
+- **What you do:** Run agent logic with WASM parity, host functions, gateways ([MCP](/mcp), A2A, x402), and strict policy boundaries.
+- **Surfaces:** **[MWVM](/mwvm)** on top of the SDK; [Agent wallet](/agent-wallet) and [Signing](/signing) for keys and claims.
+- **Ownership:** Highest—you own runtime policy, upgrades, and operational safety.
+- **Fit when:** You need **autonomous agents** (including stacks like **OpenClaw**-class runtimes), **hosted agent services**, or **execution that must mirror chain rules in a sandbox**.
 
-<Note>
-  **Need help?** See the [full Mintlify documentation](https://mintlify.com/docs) or their [community](https://mintlify.com/community).
-</Note>
+### Smart contracts and WASM applications (MWVM development kit)
+
+On Morpheum, **agent applications that behave like smart contracts** are developed as **WASM** with the same bytecode story locally and on-chain. If an **AI agent or team is building** that class of application—not only calling APIs from a chat tool—they should standardize on the **MWVM development kit** for the **full development and production lifecycle**:
+
+- **Develop:** `mwvm-sdk`, **`cargo mwvm`** (project bootstrap and builds), templates, local **wasmtime** execution, simulation, and debugging—see the [MWVM](/mwvm) page and the upstream [morpheum-labs/mwvm](https://github.com/morpheum-labs/mwvm) repo (README, **QUICKSTART**, **QUICKSTART-AGENT**).
+- **Ship:** The same WASM and host boundaries you tested offline carry forward to **chain-parity** production paths; pair with [Signing](/signing) and [Agent wallet](/agent-wallet) where execution must be funded or signed.
+
+MCP and the chain **[SDK](/sdk)** alone are not a substitute for this lifecycle when the product **is** the WASM agent contract—you still anchor development, CI, and releases in **MWVM**.
+
+## Activity level: how you will work day to day
+
+Match **how often** and **how** you touch Morpheum to the right surface.
+
+| Activity profile | Description | Start here |
+| ---------------- | ----------- | ---------- |
+| **Explore and assist** | Chat or IDE-driven help, docs, occasional test txs | [MCP](/mcp) + docs; add CLI for one-off chain commands |
+| **Operate and script** | Cron jobs, deploy scripts, support playbooks | [DEX CLI](/dex-cli); shell around SDK if you need logic |
+| **Build and ship** | Production UX, custody patterns, streaming, risk | [SDK](/sdk) + [Signing](/signing); [Agent wallet](/agent-wallet) for automated traders |
+| **Build WASM / “smart contract” agents** | Edit–build–test–deploy lifecycle for on-chain-parity WASM | **[MWVM](/mwvm)** development kit (SDK, CLI, `cargo mwvm`, local runtime); then gateways as needed |
+| **Run agents as a platform** | Long-lived agents, tool discovery, paid APIs | [SDK](/sdk) + [MWVM](/mwvm); expose [MCP](/mcp) or HTTP gateways as your product allows |
+
+If you are **only** adding Morpheum to an existing AI assistant (e.g. Cursor, Claude Desktop, or an OpenClaw-style agent host), **Level 1** with **MCP** is usually enough until you need custom latency or custody—in which case you move to **SDK** or **MWVM** for the hot path.
+
+## Choose by product type
+
+### AI agents and assistant hosts (e.g. OpenClaw-class runtimes)
+
+- **Primary:** [MCP](/mcp) so the model lists and invokes tools with schemas and audit boundaries.
+- **When to add SDK/MWVM:** You need **sub-second** custom flows, **batch** jobs without an LLM, **chain-parity** WASM, or **hosted** multi-tenant agents → **[SDK](/sdk)** and **[MWVM](/mwvm)** ([Level 3](#level-3--agent-runtime-and-chain-parity-execution)).
+- **When the agent is developing WASM / smart-contract-style apps:** Use the **[MWVM](/mwvm) development kit** for the full lifecycle ([see above](#smart-contracts-and-wasm-applications-mwvm-development-kit)); do not rely on MCP alone to replace build, test, and deploy discipline for that code.
+- **Signing:** [Agent wallet](/agent-wallet) and [Signing](/signing) when agents hold or request keys.
+
+### Wallet applications
+
+- **Primary:** [SDK](/sdk) (TypeScript in browser/extension, Rust for native) with signers from the SDK docs (MetaMask, Phantom, native signers, etc.).
+- **Secondary:** [DEX CLI](/dex-cli) for support and recovery scripts, not for the main UX.
+- **MCP:** Optional for **developer tooling** or **support copilots**, not for end-user wallet security boundaries.
+
+### Third-party exchange or trading UI
+
+- **Primary:** [SDK](/sdk) for markets, transport (gRPC/HTTP), and streaming; follow **[Engines](/engines/introduction)** and **[Listings](/listings/introduction)** for product rules.
+- **Secondary:** [DEX CLI](/dex-cli) for operations and integration tests.
+- **MCP:** For **internal** automation (risk checks, runbooks), not as the sole execution path for live trading unless you have engineered latency and failure modes explicitly.
+
+### Validators and node operators
+
+- **Primary:** [Node](/node/index) tab (deploy guides, [Node CLI](/node/cli)); this path is separate from MCP/DEX CLI/SDK product integration unless you automate node ops via scripts.
+
+## A simple decision order
+
+1. **Do end users run your code in a browser or app?** → **[SDK](/sdk)** ([Level 2](#level-2--product-integration) or [3](#level-3--agent-runtime-and-chain-parity-execution)).
+2. **Is the “user” an AI that should call tools?** → **[MCP](/mcp)** first; escalate to SDK/MWVM when you outgrow protocol boundaries.
+3. **Is the “user” a human or CI running commands?** → **[DEX CLI](/dex-cli)**.
+4. **Do you run sandboxed agent bytecode with host calls, or ship WASM like a smart contract?** → **[MWVM](/mwvm)** development kit (full lifecycle); add [SDK](/sdk) for chain and product APIs where needed.
+
+## Next steps
+
+- Protocol and assistant tooling: **[MCP](/mcp)**.
+- Terminal and automation: **[DEX CLI](/dex-cli)** (upstream [morpheum-cli](https://github.com/morpheum-labs/morpheum-cli)).
+- Libraries and runtimes: **[SDK](/sdk)**, **[MWVM](/mwvm)** (use the MWVM kit for WASM agent and smart-contract-style development lifecycle).
+- Keys and automated trading: **[Agent wallet](/agent-wallet)**, **[Signing](/signing)**.
+- Paid and metered APIs: **[x402](/x402)**.

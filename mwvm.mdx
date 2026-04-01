@@ -34,6 +34,15 @@ MWVM includes an orchestration layer for many agents at once:
 - **Message passing** between agents with semantics aligned to how coordination works in Morpheum’s model.
 - **Shared memory simulation** so collective state and contention behave like they will under real orchestration constraints.
 
+## Development kit and lifecycle (WASM / smart-contract-style agents)
+
+If you are building **applications implemented as WASM agents**—the same pattern Morpheum uses for **verifiable, on-chain-parity “smart contract” style logic**—use the **MWVM development kit** for both **development** and **production**:
+
+- **Kit:** `mwvm-sdk`, **`mwvm-cli`**, **`cargo mwvm`** (scaffold and build), **templates**, examples, and the **wasmtime**-based local runtime (simulation, debugging, offline and testnet-fork modes described below).
+- **Lifecycle:** Local build and test → CI on the same WASM → deploy or promote workloads that share semantics with chain execution—so you are not maintaining two divergent stacks.
+
+Editors and assistants can still use **[MCP](/mcp)** to wrap tools, but **authoring** the WASM application and owning its release process belongs in this repo and workflow. Start from the [Quickstart](/quickstart) integration map, then the **[QUICKSTART-AGENT](https://github.com/morpheum-labs/mwvm/blob/main/QUICKSTART-AGENT.md)** and **README** in [morpheum-labs/mwvm](https://github.com/morpheum-labs/mwvm).
+
 ## SDKs
 
 Two first-class SDK paths cover systems and front-end style integrations:
