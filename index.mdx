@@ -1,0 +1,38 @@
+---
+title: "Introduction"
+description: "What Morpheum is and how to use it"
+---
+
+## What is Morpheum?
+
+**Morpheum** is a high-performance decentralized trading platform. It is built for developers and agents who need fast, reliable, and secure trading infrastructure.
+
+In simple terms:
+
+- **Fast and cheap**: Orders are confirmed in under 100ms. There are no gas fees for submitting transactions.
+- **Fair ordering**: Order flow is ordered fairly (VRF-based) to reduce MEV and front-running.
+- **Real-time trading**: A zero-contention orderbook (Zero CLOB) matches orders in under 20μs with price-time priority.
+- **Oracles built-in**: Mark price, index price, TWAP, and other feeds stream in real time over WebSocket and gRPC.
+- **Risk and capital**: Cross-margin and isolated buckets, liquidations, positions, and PnL are handled on-chain.
+- **Cross-chain**: You can move assets and interact with other chains via Hyperlane.
+
+Consensus uses **MorphDAG-BFT**: a DAG-based, Byzantine-fault-tolerant design that supports sharding and scales to 100k+ TPS with sub-100ms finality. The system is production-ready and suitable for building trading apps, bots, and agent-driven workflows.
+
+## Who is this for?
+
+This documentation is for:
+
+- **Developers** integrating with Morpheum APIs, orderbooks, and streaming data.
+- **Agents and bots** that need clear rules, endpoints, and behavior to automate trading or risk checks.
+- **Operators** who need to understand policies, safety thresholds, and listing requirements.
+
+## Get started
+
+<Card
+  title="Quickstart"
+  icon="rocket"
+  href="/quickstart"
+  horizontal
+>
+  Set up your environment and run through the quickstart steps.
+</Card>

@@ -1,0 +1,62 @@
+---
+title: "Suitable Use Cases for CLAMM (Concentrated Liquidity Automated Market Maker)"
+sidebarTitle: "CLAMM use cases"
+description: "Suitable use cases for CLAMM by volume and market cap; implementation reference (Golang)"
+---
+
+## Overview
+
+**CLAMM**, as part of the Hyper-CLAMM engine in the Morpheum ecosystem (a gasless, DAG-based Layer 1 chain), is designed for decentralized spot trading in a CLOB DEX environment. It draws from Uniswap V3's concentrated liquidity model, Balancer V3's boosted pools and hooks, and ReClamm's virtual balance adjustments for enhanced capital efficiency (up to 250–300× compared to constant product AMMs like Uniswap V2). This makes it ideal for scenarios where liquidity providers (LPs) want precise price range control, automatic rebalancing, and composability with staking or yield-bearing assets.
+
+CLAMM excels in **spot markets** for both native L1 tokens and cross-chain synthetics (e.g. wETH, wBTC, wXRP via oracles and bridges like Hyperlane). It is not suited for perpetuals or high-leverage derivatives (those would use a separate CLOB module), but it is optimized for AMM–CLOB hybrids where low-slippage trades are needed. Below are suitable use cases, categorized by volume and market cap, based on the system's design principles (e.g. from hyper_clamm_system_design.md and reclamm-features.md). These are informed by performance bounds: sharded throughput of 10k+ TPS per shard (100–200 shards total, yielding 100k–2M TPS practical), sub-100ms latency, and capital efficiency that scales with pool depth.
+
+---
+
+## 1. Volume-wise suitability
+
+CLAMM handles high concurrency via per-pool locking and DAG-async processing, making it scalable for varying trade volumes. It uses O(log n) tick iteration for swaps, ensuring efficiency even in deep books.
+
+| Volume level | Suitable use cases | Why CLAMM fits | Examples | Limitations / notes |
+|--------------|--------------------|----------------|----------|---------------------|
+| **Low volume (&lt;$1M daily)** | Emerging meme coins or niche tokens with sporadic trades; community-driven pools for governance tokens; testnet or early-stage launches where LPs provide concentrated liquidity in tight ranges to bootstrap depth. | Concentrated liquidity lets LPs focus capital in expected price ranges, reducing impermanent loss (IL) by 50–80% vs full-range AMMs. ReClamm's auto-recentering prevents pool drift in low-activity periods. | Meme tokens like $PEPE or $DOGE equivalents on Morpheum; small-cap DeFi projects (e.g. DAO tokens with $100K–$500K TVL). | Not ideal if volume is near-zero; hooks can add dynamic fees to incentivize trades, but oracle reliance for synthetics adds minor latency (2–5s confirmation). |
+| **Medium volume ($1M–$50M daily)** | Stablecoin pairs or mid-tier assets with moderate volatility; yield-farming pools where LPs stake fungible shares for extra rewards; cross-chain bridges for wrapped assets (e.g. ETH/USDC) with oracle-fed pricing. | Boosted pools enable 100% capital utilization via yield-bearing tokens (e.g. integrated with staking-interest module). Hooks allow dynamic fees (0.001%–10%) based on volatility, capturing MEV without front-running. | USDC/USDT stable swaps; mid-cap tokens like $SOL or $XRP synthetics with $5M–$20M TVL; prediction markets via hooks (e.g. Prediction Market Hook from pool_features.md). | Handles 1k–10k trades/hour well; sharding ensures no bottlenecks. For cross-chain, virtual buffers seed liquidity without real LP funding. |
+| **High volume (&gt;$50M daily)** | Blue-chip pairs with deep liquidity needs; high-utility tokens in DeFi ecosystems (e.g. borrowing collateral); volatile assets in trending markets where CLOB-hybrid routing minimizes slippage. | Hybrid AMM–CLOB (from enhanced_clob_matching.go) routes high-volume trades to orderbooks for zero-slippage, while AMM handles retail. ReClamm's glide (exponential shifts) maintains centeredness (c ≥ 0.8) during surges, bounding slippage &lt;0.01% per trade. | BTC/USDC or ETH/USDC with $100M+ TVL; large meme surges (e.g. $SHIB-like with $1B market cap); institutional pools using MEV Tax Hook for priority fee capture. | Theoretical max &gt;25M TPS; practical 100k TPS with 100 shards. Use for markets &gt;$1B cap to leverage 250× efficiency. Avoid if extreme volatility (&gt;300% daily); cap τ=0.5 for stability. |
+
+---
+
+## 2. Market cap–wise suitability
+
+Market cap influences pool TVL and IL risks. CLAMM's virtual balances and range-bound liquidity make it efficient across caps, but it works best for assets where LPs can predict ranges (e.g. stables or established tokens).
+
+| Market cap level | Suitable use cases | Why CLAMM fits | Examples | Limitations / notes |
+|-----------------|--------------------|----------------|----------|---------------------|
+| **Small cap (&lt;$10M)** | Hyper-volatile memes or new launches; niche RWAs (real-world assets) with low liquidity; experimental pools with custom hooks (e.g. lottery or referral discounts). | Fungible LP shares allow staking for yields, offsetting IL. Hooks like VolatilityLoyaltyHook reward long-term holders, stabilizing small pools. | Fresh memecoins (e.g. via Balancer.Fun fair launch hook); small NFT-backed pools (e.g. NFT Escrow Hook). | High IL risk; use ReClamm's σ=0.05 stochastic damping to cap variance &lt;0.01L. TVL should be &gt;$100K for viability. |
+| **Mid cap ($10M–$500M)** | Growing DeFi tokens or cross-chain imports; yield-optimized pools for borrowing/lending collateral; prediction or insurance markets with dynamic fees. | Boosted pools integrate with staking for multi-layer yields (AMM fees + staking APY). Oracle-backed synthetics handle cross-chain without local LPs. | $XRP or $LINK equivalents; RWA bonds via ReBalancer hook for auto-rebalancing. | Ideal for $5M–$50M TVL; glide triggers (min 1-day) prevent over-adjustment in 50–100% volatility. |
+| **Large cap (&gt;$500M)** | Established blue-chips or stables; high-utility assets in ecosystems (e.g. governance or collateral); institutional trading with MEV capture. | Scales to massive TVL via sharding; CLOB hybrids for deep orderbooks. Invariant preservation (ΔL/L ≤ 10⁻⁶) ensures no drains. | ETH, BTC, or USDC pairs; large RWAs with Insurance Premium Hook for risk coverage. | Handles $1B+ TVL; use for caps &gt;$1B to maximize 300× efficiency. Oracle multi-sourcing (Pyth + Chainlink) bounds deviation &lt;0.5%. |
+
+---
+
+## General recommendations
+
+- **Best overall**: Medium–high volume mid–large cap assets (e.g. $10M–$1B cap with $5M+ daily volume) where concentrated liquidity shines—e.g. stablecoin farms or cross-chain hubs. Avoid ultra-low volume (&lt;$100K daily) unless hooks incentivize activity.
+- **Efficiency gains**: In simulations (from reclamm-features.md), CLAMM achieves 200–300× capital efficiency for volatile pairs (e.g. memes) and 100% utilization for stables via boosted pools.
+- **Cross-chain specifics**: For tokens like ETH/BTC/XRP (from spot-engine.md), use oracle-seeded virtuals without local LP funding—suitable for any volume/cap, but cap virtual dominance at 95% to mitigate oracle risks.
+
+---
+
+## Implementation reference (Golang)
+
+The system designs in the provided documents (e.g. hyper_clamm_system_design.md, phase2-todos.md, hooks_documentation.md) reference a modular Golang structure under `pkg/modules/clamm/`. Key files and programs relevant to CLAMM implementation and use cases:
+
+- **Core keeper logic** — `pkg/modules/clamm/keeper/keeper.go` — Manages state (pools, positions); integrates with DAG for async swaps. Use for volume handling (e.g. per-pool locking for high TPS).
+- **Swap operations** — `pkg/modules/clamm/keeper/swap.go` — Implements exact-in/out swaps with tick iteration; optimized for medium–high volume via O(log n) algorithms.
+- **Liquidity management** — `pkg/modules/clamm/keeper/liquidity.go` — Handles add/remove liquidity; key for boosted pools in large-cap use cases.
+- **ReClamm math** — `pkg/modules/clamm/math/reclamm_math.go` — Virtual balance and glide calculations; essential for volatile small-cap memes.
+- **Hooks system** — `pkg/modules/clamm/hooks/base_hook.go` and `pkg/modules/clamm/types/interfaces.go` — Extensibility for custom use cases (e.g. Volatility Fee Hook for mid-cap volatility).
+- **Query handlers** — `pkg/modules/clamm/keeper/grpc_query_server.go` — Read operations like get_pool_info; low-latency for market cap queries.
+- **Integration points**:
+  - `consensus/pipeline/stages/validation/oracle_integration.go` — For cross-chain oracles in synthetic pools.
+  - `pkg/modules/staking-interest/module.go` — Staking LP shares for yield in all caps.
+- **Testing / programs** — `test/clob_framework/test_scenarios.go` — Simulates volume and market cap scenarios (e.g. 1M trades/day for mid-cap pools).
+
+For code snippets, patches, or a prototype (e.g. a simple CLI in Golang to simulate a CLAMM pool for a specific use case like a $10M meme coin), refer to the internal system design and phase documentation or the morphcore repository.

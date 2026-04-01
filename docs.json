@@ -1,0 +1,156 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Morpheum",
+  "colors": {
+    "primary": "#16A34A",
+    "light": "#07C983",
+    "dark": "#15803D"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "index",
+              "quickstart",
+              "development"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "API documentation",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          },
+          {
+            "group": "Endpoint examples",
+            "pages": [
+              "api-reference/endpoint/get",
+              "api-reference/endpoint/create",
+              "api-reference/endpoint/delete",
+              "api-reference/endpoint/webhook"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Engines",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "engines/introduction"
+            ]
+          },
+          {
+            "group": "CLAMM",
+            "pages": [
+              "engines/suitable-use-cases-clamm",
+              "engines/maximum-sustainable-volume",
+              "engines/reclamm-glide-mechanics",
+              "engines/reclamm-slippage-impact-analysis"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Listings",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "listings/introduction"
+            ]
+          },
+          {
+            "group": "Safety thresholds & policy",
+            "pages": [
+              "listings/safety-thresholds-clob-spot-markets",
+              "listings/safety-requirement-spot-market-volume"
+            ]
+          },
+          {
+            "group": "Market maker requirements",
+            "pages": [
+              "listings/minimum-market-makers-requirement",
+              "listings/mathematical-model-minimum-market-makers"
+            ]
+          },
+          {
+            "group": "HyperClamm",
+            "pages": [
+              "listings/hyperclamm-listing",
+              "listings/hyperclamm-use-cases",
+              "listings/hyperclamm-volume"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Documentation",
+          "href": "https://mintlify.com/docs",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "Community",
+          "href": "https://mintlify.com/community",
+          "icon": "slack"
+        },
+        {
+          "anchor": "Blog",
+          "href": "https://mintlify.com/blog",
+          "icon": "newspaper"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:hi@mintlify.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Foundation",
+      "href": "https://www.morpheum.foundation"
+    }
+  },
+  "contextual": {
+    "options": [
+     "copy",
+     "view",
+     "chatgpt",
+     "claude",
+     "perplexity",
+     "mcp",
+     "cursor",
+     "vscode"
+   ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/MorpheumX",
+      "github": "https://github.com/noro-dex",
+      "linkedin": "https://linkedin.com/company/MorpheumX"
+    }
+  }
+}

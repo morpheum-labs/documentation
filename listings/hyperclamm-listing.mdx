@@ -1,0 +1,86 @@
+---
+title: "Setting Up a New Spot Pair via Hyper-CLAMM (UI)"
+sidebarTitle: "Hyper-CLAMM listing"
+description: "Concepts and flow for creating a new spot pair on Morpheum DEX via the UI client, from proposal to live pool"
+---
+
+## Overview
+
+**Hyper-CLAMM** on Morpheum is a concentrated-liquidity AMM experience exposed through the Morpheum UI Client (e.g. `app.morpheum.io`). Listing a new spot pair via this path is **form-based and wallet-driven**: no coding is required. Users connect a wallet, fill in pool parameters, submit a governance proposal, and—after approval—initialize the pool, optionally attach hooks, and add liquidity until the pair is live.
+
+This page describes the **concepts** behind that flow: who it is for, what is required, how governance fits in, and what each stage means.
+
+---
+
+## Who This Is For
+
+The Hyper-CLAMM listing flow is intended for **human operators** who want to create a new spot trading pair using the web UI. It assumes a standard DEX-style interface (similar in spirit to Uniswap-style UIs) tailored for Hyper-CLAMM (tick-based concentrated liquidity, fee tiers, optional hooks). No scripting or SDK usage is required; all actions are done via forms and wallet signatures.
+
+---
+
+## Prerequisites (Conceptual)
+
+Before starting, users are expected to have:
+
+- **A connected wallet** (e.g. MetaMask or Morpheum Wallet Extension) to sign transactions and proposals.
+- **Enough $NATIVE** to pay any governance or listing fees required by the protocol.
+- **SuperGrokPro access** if they intend to use advanced features such as synthetic modes (as defined by the platform).
+- **Awareness of timezone** — deadlines and timestamps in the UI use **HKT** (e.g. “January 29, 2026 09:46 PM HKT”). Proposals and operations should be interpreted in that context.
+
+---
+
+## End-to-End Flow (Conceptual)
+
+The journey from “no pool” to “live trading pair” follows a small number of stages:
+
+1. **Create proposal** — From the dashboard, the user starts “Create New Pool”. They choose the token pair, mode (e.g. standard or synthetic), fee tier, tick spacing, ReClamm parameters, and whether the pool is boosted. Submitting this creates a **governance proposal** and requires a wallet signature.
+
+2. **Governance approval** — The proposal is voted on by the protocol’s governance. This step typically takes **about 1–24 hours**. Until approval, the pool does not exist on-chain.
+
+3. **Pool initialized** — After the vote passes, the pool is initialized and a **Pool ID** is assigned. The user can see this in the UI (e.g. on a “Pool details” or “Pool initialized” screen).
+
+4. **Optional hooks** — The operator may attach **hooks** (e.g. volatility-based fee logic) to the pool. This is done by selecting from a list of available hooks and registering them via a signed transaction. Hooks are optional; the pool can go live without them.
+
+5. **Add liquidity** — The user adds liquidity by specifying amounts, tick range, and whether to use balanced or unbalanced mode. This step involves token approvals and one or more wallet signatures. Once liquidity is in place, the pool is **live** and appears on the trading dashboard.
+
+6. **Live pool** — The pair is operational: users can swap (exact-in / exact-out), and operators can monitor charts (e.g. centeredness, virtuals, TVL) and run queries as needed.
+
+**Total time** is typically **5–15 minutes of active work** plus **1–24 hours** of waiting for governance.
+
+---
+
+## Why Governance Is in the Loop
+
+New spot pairs affect risk, liquidity fragmentation, and protocol parameters. Requiring a **governance vote** before a pool is created ensures that:
+
+- New pairs are aligned with protocol policy and safety thresholds.
+- Fee tiers, tick spacing, and ReClamm settings are reviewed rather than set arbitrarily.
+- The number and type of new markets stay manageable and consistent with Min MM and safety rules (e.g. when a market later qualifies for pure CLOB or uses Hyper-CLAMM as fallback).
+
+So conceptually, **listing via Hyper-CLAMM is a governed action**, not a permissionless deploy.
+
+---
+
+## Key Concepts in the Form
+
+- **Tokens & mode** — The two assets in the pair and the pool mode (e.g. standard spot vs synthetic), which can depend on SuperGrokPro or other access.
+- **Fee tier & tick spacing** — Determine swap fees and the granularity of liquidity (tick spacing). These affect capital efficiency and spread.
+- **ReClamm params** — Parameters that control the ReClamm (reconcentrating / rebalancing) behavior of the concentrated liquidity, influencing how positions are managed over time.
+- **Boosted** — Whether the pool participates in boosted (incentivized) liquidity programs.
+- **Hooks** — Optional modules (e.g. volatility fee) that run at defined lifecycle points (e.g. before/after swap). They are registered per pool and can be skipped for a minimal setup.
+
+---
+
+## Relation to CLOB and Safety Policy
+
+Hyper-CLAMM listing creates **AMM-style** spot pairs. These may later qualify for **pure CLOB** (or hybrid) when volume and depth meet the safety thresholds described elsewhere in Listings. Until then, or when CLOB conditions are not met, trading in that market is served by Hyper-CLAMM. Understanding the **safety thresholds** and **minimum market maker** requirements helps operators choose parameters and plan for a potential transition to CLOB when the market matures.
+
+---
+
+## Summary
+
+- **Hyper-CLAMM listing** = creating a new spot pair via the Morpheum UI in a form-based, wallet-signed way.
+- **Flow**: Proposal (tokens, mode, fee tier, tick spacing, ReClamm, boosted) → Governance (1–24 h) → Pool initialized → Optional hooks → Add liquidity → Live.
+- **Governance** ensures new pairs fit protocol policy and safety.
+- **Prerequisites**: connected wallet, sufficient $NATIVE, optional SuperGrokPro for advanced modes, and awareness of HKT timestamps.
+- **Concept-only**: this page explains the ideas; for exact buttons and screens, use the in-app UI guide or product docs.

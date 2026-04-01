@@ -1,0 +1,66 @@
+---
+title: "Quickstart"
+description: "Get started with Morpheum documentation and policy in a few steps"
+---
+
+## About this quickstart
+
+This guide gets you from zero to a working local setup so you can read, edit, and preview the **Morpheum policy and API docs**. It is written for developers and agents: short steps, clear commands, no extra jargon.
+
+**You will:**
+
+1. Set up your local environment (clone repo, run the docs preview).
+2. Deploy or share your changes (e.g. via GitHub and Mintlify).
+3. Go live or iterate (commit, push, and optionally publish).
+
+No Morpheum node or API keys are required to work on this documentation site.
+
+## Get started in three steps
+
+### Step 1: Set up your local environment
+
+<AccordionGroup>
+  <Accordion icon="copy" title="Clone the docs repository">
+    You need the repo that contains this documentation (e.g. the policy/docs repo). Get the clone URL from your [Mintlify dashboard](https://dashboard.mintlify.com) or your Git host.
+    
+    To clone it locally, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide.
+  </Accordion>
+  <Accordion icon="rectangle-terminal" title="Start the preview server">
+    1. Install the Mintlify CLI: `npm i -g mint`
+    2. Go to the docs directory (where `docs.json` lives) and run: `mint dev`
+    3. Open `http://localhost:3000` to view the docs.
+    
+    <Tip>Edits to MDX files refresh automatically in the browser.</Tip>
+  </Accordion>
+</AccordionGroup>
+
+### Step 2: Deploy your changes
+
+<AccordionGroup>
+  <Accordion icon="github" title="Install the Mintlify GitHub app">
+    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    
+    The app deploys your docs when you push, so you don't need to run your own deployment pipeline.
+  </Accordion>
+  <Accordion icon="palette" title="Update site name and colors">
+    For a first change, update the docs site name and colors:
+
+    1. Open `docs.json` in the repo root.
+    2. Change the `"name"` field to your project name (e.g. "Morpheum Policy").
+    3. Update the `"colors"` to match your brand.
+    4. Save; the preview at `http://localhost:3000` updates immediately.
+
+    <Tip>Try changing the primary color to see the effect right away.</Tip>
+  </Accordion>
+</AccordionGroup>
+
+### Step 3: Go live
+
+<Accordion icon="rocket" title="Publish your docs">
+  1. Commit and push your changes.
+  2. If the Mintlify app is installed, the docs site will update automatically.
+</Accordion>
+
+<Note>
+  **Need help?** See the [full Mintlify documentation](https://mintlify.com/docs) or their [community](https://mintlify.com/community).
+</Note>

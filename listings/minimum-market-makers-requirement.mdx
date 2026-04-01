@@ -1,0 +1,63 @@
+---
+title: "Minimum Number of Market Makers Requirement"
+sidebarTitle: "Minimum market makers"
+description: "Understanding the minimum number of market makers required for safe pure CLOB engine operation in spot markets"
+---
+
+**"Min # MMs"** stands for **Minimum Number of Market Makers**.
+
+In the context of the safety table for running a **pure CLOB engine** on your spot markets, it refers to:
+
+The **smallest number of independent, active, and reliable market makers** that must be simultaneously participating in (and committed to) providing liquidity in that market for it to be considered safe enough to operate under pure order-book rules without excessive risk of manipulation, extreme slippage, or unsustainable wide spreads.
+
+### Why this number matters (especially for cross-chain / oracle-dependent pairs)
+
+In a pure CLOB (no AMM curve, no virtual buffers, no automatic liquidity provision), the entire price discovery and depth come from resting limit orders placed by participants — and in practice, especially for newer or lower-volume markets, the vast majority of that useful depth is provided by **professional or incentivized market makers**.
+
+If too few market makers are active, several bad things become much more likely:
+
+- **Monopoly / collusion risk** — one or two actors can heavily influence or spoof the book
+- **Sudden liquidity withdrawal** — if only 1–2 MMs are quoting and they all pull quotes at the same time (volatility spike, hedging cost increase, bridge issues), the book can become extremely thin or effectively disappear → massive slippage or halted trading
+- **Wider spreads & poor price efficiency** — competition between market makers is what normally tightens spreads toward the oracle price
+- **Higher manipulation surface** — easier for a whale or coordinated actors to push the price far from the oracle reference
+
+### Interpretation of the numbers in the table
+
+| Pair          | Min # MMs | Practical meaning / risk implication |
+|---------------|-----------|---------------------------------------|
+| BTC/USDC      | 5         | High-value, high-visibility pair → requires strong competition among at least 5 independent MMs to keep spreads tight (< 0.1%) and resist manipulation even during large flows |
+| ETH/USDC      | 5         | Same logic — major crypto pair, needs multiple competing liquidity providers |
+| GOLD/USDC     | 3         | Lower expected volume + lower volatility than crypto majors → 3 competing MMs are usually sufficient to maintain reasonable depth and oracle alignment |
+| SILVER/USDC   | 3         | Similar to gold — commodity with moderate volatility and usually smaller trade sizes |
+| COPPER/USDC   | 3         | Lowest volume/commodity pair in the list → even 3 reliable MMs can usually keep the market functional, though spreads will naturally be wider |
+
+### How this minimum is typically enforced in practice (in your architecture)
+
+1. **Whitelisting / registration**  
+   Market makers register via governance or a permissioned keeper mechanism and post collateral.
+
+2. **Uptime / quote continuity monitoring**  
+   The system tracks (per epoch or per block window):
+   - Whether each registered MM has resting orders within ±X% of the oracle mid-price
+   - The size / number of levels they are quoting
+   - Whether their quotes are present continuously (or withdrawn for too long)
+
+3. **Active MM count check**  
+   Before allowing normal trading (or before lifting a "restricted mode"):
+   - Count how many MMs have recently (last 5–30 minutes) maintained qualifying quotes
+   - If count < Min # MMs → enter safety mode:
+     - Widen allowed deviation guard
+     - Increase circuit-breaker sensitivity
+     - Optionally route new aggressive orders through a fallback Hyper-CLAMM buffer (if hybrid is enabled)
+     - In extreme cases: pause market or force only post-only orders
+
+4. **Slashing / reputation penalties**  
+   If an MM repeatedly fails to meet uptime/quote obligations → slash part of their committed stake and/or lower their reputation score, which can reduce their priority in order matching or remove incentives.
+
+### Quick summary
+
+**"Min # MMs" = the fewest independent liquidity providers we require to be actively quoting in the book at any given time to consider the pure CLOB market reasonably safe.**
+
+Fewer than this number → significantly higher tail risk of liquidity crises, manipulation, or unsustainable deviation from the oracle price — which is why the requirement is stricter (5) for the highest-value crypto pairs and more relaxed (3) for lower-volume commodity pairs.
+
+Let me know if you want to adjust these thresholds based on specific incentive budgets, expected volatility, or whether you plan to allow hybrid fallback routing to Hyper-CLAMM when the minimum is temporarily breached.

@@ -1,0 +1,39 @@
+---
+title: "Engines Introduction"
+sidebarTitle: "Introduction"
+description: "Overview of the Engines section: CLAMM, Hyper-CLAMM, ReClamm volume, glide, and slippage"
+---
+
+## Overview
+
+The **Engines** section describes the core trading engines powering spot markets on Morpheum: **CLAMM** (Concentrated Liquidity Automated Market Maker) within the **Hyper-CLAMM** stack, and **ReClamm** (Re-Centering Liquidity AMM) mechanics. It covers suitable use cases by volume and market cap, maximum sustainable daily volume, glide (gradual recentering), and slippage impact—so you can understand how the system scales, when to use it, and how capital efficiency and execution quality are bounded.
+
+## What you'll find here
+
+- **CLAMM use cases** — Suitable use cases by volume and market cap; when CLAMM fits (spot, cross-chain synthetics, stables, memes); implementation reference (Golang).
+- **Volume capacity** — Maximum sustainable daily volume ($5–15B), theoretical peak ($20–50B+), and IMO-style limiting factors (compute, consensus, state, MEV, real-world analogs).
+- **ReClamm glide mechanics** — How glide recenters virtual liquidity toward a target price without large arb or active LP management; variables, centeredness, update rule, typical values, and trade-offs.
+- **ReClamm slippage impact** — Slippage formula and bounds, volatility and stochastic effects, MEV/LP impact, DAG async, simulation results, and Hyper-CLAMM mitigations.
+
+## Quick links
+
+<Columns cols={2}>
+  <Card title="CLAMM use cases" icon="lightbulb" href="suitable-use-cases-clamm">
+    Suitable use cases by volume and market cap; spot, synthetics, and Golang implementation reference.
+  </Card>
+  <Card title="Hyper-CLAMM volume capacity" icon="chart-mixed" href="maximum-sustainable-volume">
+    Sustainable $5–15B/day, peak $20–50B+, and key limiting factors.
+  </Card>
+  <Card title="ReClamm glide mechanics" icon="arrows-rotate" href="reclamm-glide-mechanics">
+    Glide (gradual recentering): variables, centeredness, update rule, and engineering trade-offs.
+  </Card>
+  <Card title="ReClamm slippage impact" icon="chart-line" href="reclamm-slippage-impact-analysis">
+    Slippage formula, bounds, volatility, MEV, DAG async, and Hyper-CLAMM mitigations.
+  </Card>
+</Columns>
+
+## Who this is for
+
+- **Operators** and **protocol designers** choosing parameters (fee tiers, ReClamm τ/m, hooks) for spot pairs.
+- **Liquidity providers** understanding capital efficiency, glide, and slippage in different regimes.
+- **Developers** integrating with the CLAMM/ReClamm engine or implementing glide-aware hooks and CLOB-hybrid routing.

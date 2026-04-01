@@ -1,0 +1,167 @@
+---
+title: "Safety Thresholds for Pure CLOB Engine in Spot Markets"
+sidebarTitle: "Safety thresholds (CLOB spot)"
+description: "Volume, Commitments, and Minimum Requirements for deploying a pure Central Limit Order Book engine in spot markets"
+---
+
+### Why Safety Thresholds Matter
+
+A **Central Limit Order Book (CLOB)** works best when there is enough trading volume and enough resting liquidity (bids and asks) so that:
+
+- **Prices stay close to the oracle** (e.g. within 1–2%) and are hard to manipulate.
+- **Spreads stay tight** and **slippage stays low**, so trades execute at fair prices.
+- **Market makers and LPs can earn enough** to keep providing liquidity instead of pulling out.
+
+Safety thresholds are the **minimum levels of volume and liquidity** we require before running a market in pure CLOB mode. If we run CLOB below these levels, the market can become illiquid, spreads can blow out, and prices can drift far from the oracle—bad for everyone.
+
+---
+
+### Why This Matters for Market Makers and LPs
+
+In a pure CLOB, **liquidity comes from market makers (MMs)** who place resting limit orders (bids and asks), not from pooled AMM-style LPs. Safety thresholds protect MMs and LPs in several ways:
+
+1. **Sustainable economics**  
+   Volume thresholds (e.g. &gt; $100K–500K/day minimum) ensure that fee income can cover MM costs (hedging, bridging, opportunity cost). If volume is too low, fees don’t cover costs, MMs leave, and the book dries up.
+
+2. **Clear commitment rules**  
+   Minimum depth per side (e.g. $1–5M at ±1% from oracle) set a clear “floor” so no single MM has to carry the whole book. Multiple MMs (e.g. ≥3) with minimum staked collateral (e.g. $500K each) spread risk and keep the market competitive.
+
+3. **Protection from extreme moves**  
+   Circuit breakers (e.g. pause when depth drops below 50% of minimum or volume spikes 5×) limit flash-crash and liquidity-drain scenarios, so MMs aren’t left holding one-sided risk.
+
+4. **Incentives aligned with safety**  
+   Fee sharing (e.g. 50% to MMs) and subsidies when volume is below target encourage MMs to stay and maintain depth instead of withdrawing when conditions are temporarily weak.
+
+In short: **Safety thresholds make it economically viable and operationally reasonable for MMs and LPs to keep providing depth**, so the CLOB doesn’t collapse into a thin, unstable book.
+
+---
+
+### Why This Matters for Traders
+
+Traders benefit from safety thresholds because they directly support **better execution and fairer prices**:
+
+1. **Tighter spreads**  
+   When minimum depth per side is enforced (e.g. $1M+ per side within ±1% of oracle), the bid-ask spread stays bounded (e.g. &lt; 0.5%). That means **you pay less to cross the spread** on every trade.
+
+2. **Predictable slippage**  
+   Enough resting liquidity means your order size is small relative to the book. So a $50K order in a market with $500K+ daily volume and sufficient depth gets **slippage kept in check** (e.g. &lt; 1%), instead of moving the price sharply.
+
+3. **Prices you can trust**  
+   The **deviation guard** (e.g. CLOB mid within 1% of oracle) and **oracle-referenced depth** reduce the risk of the on-book price drifting far from the “real” price. You get **execution closer to the reference market**, especially important for cross-chain pairs (wETH, wBTC, etc.).
+
+4. **Fewer extreme events**  
+   **Circuit breakers** (pause when depth or volume hit safety limits) and **fallback to Hyper-CLAMM** when thresholds aren’t met mean you’re less likely to trade in a suddenly illiquid or manipulable environment.
+
+In short: **Safety thresholds give traders tighter spreads, lower slippage, and prices that stay aligned with the oracle**, so trading is cheaper and more reliable.
+
+---
+
+### 1. Suitable Trading Volumes for Pure CLOB
+
+Pure CLOB works best in **medium-to-high volume** markets. In low-volume or meme markets, spreads can widen (e.g. &gt; 2%) and slippage can spike—so we only run pure CLOB when volume is above certain levels.
+
+- **Minimum viable**: &gt; $100K–500K/day per market (e.g. ETH/USDC). Below this, MM fee income tends to fall short of costs, MMs leave, and the book becomes unsafe.
+- **Optimal**: $1–10M/day for major pairs (e.g. BTC/USDC), up to $50M+ for blue chips. At these levels, CLOB can achieve CEX-like spreads (&lt; 0.1%).
+- **High volume**: &gt; $50M/day supports very tight ticks and high-frequency flow. For cross-chain pairs, we cap at a fraction of external chain volume (e.g. &lt; 20% of Ethereum ETH/USDC) to avoid peg strain.
+
+For highly volatile meme-style markets, we require higher minimum volume (e.g. &gt; $1M/day) to reduce the risk of large deviations during pumps and dumps.
+
+---
+
+### 2. MM/LP Commitments (Depth) for Safe Operation
+
+In pure CLOB, **“LP” style commitment means resting order depth** provided by market makers—bids and asks around the oracle mid—not pooled AMM reserves. We allow pure CLOB when:
+
+- **Minimum**: $1–5M committed depth **per side** (buy and sell) within ±1% of the oracle (e.g. $2M bids, $2M asks near mid). This seeds the book so early trades can execute.
+- **Optimal**: $10–50M+ total depth (e.g. $20M per side for ETH/USDC) for &lt; 0.1% spreads and large orders (&gt; $1M) with &lt; 0.5% slippage.
+- **Institutional**: &gt; $100M for major pairs (e.g. BTC) and very tight tick sizes.
+
+If a **Hybrid CLAMM** buffer is used as fallback, we require a smaller real reserve (e.g. $500K–1M) so thin or stressed orders can be routed there when CLOB depth is below threshold.
+
+For cross-chain, a portion of commitments (e.g. 20–50%) should be backed by on-chain collateral that can be slashed if MMs default.
+
+---
+
+### 3. Minimum Requirements Enforced by the System
+
+To keep pure CLOB safe (e.g. limit oracle deviation to &lt; 1%, minimize downtime and manipulation), we enforce these via governance and keeper logic (`gov::update_params`, `morphcore/pkg/modules/clob/keeper/grpc_query_server.go`):
+
+**Core minimums**
+
+1. **Liquidity depth**: ≥ $1M per side within ±1% of oracle (checked periodically via snapshots).
+2. **Daily volume**: ≥ $100K (7-day rolling average) so fee income can sustain MMs.
+3. **MM participation**: ≥ 3 whitelisted MMs with ≥ $500K staked each (≥ $1.5M total collateral).
+4. **Spread bound**: Max bid-ask spread &lt; 0.5%; orders that would violate this for &gt; 5 minutes are rejected.
+5. **Deviation guard**: CLOB mid must stay within 1% of the multi-oracle consensus; trading pauses if breached.
+
+**Additional safeguards**
+
+- **Circuit breakers**: Auto-pause if volume spikes &gt; 5× average (e.g. flash crash) or depth falls below 50% of minimum (liquidity drain).
+- **Incentives**: e.g. 50% of fees to MMs; subsidies (e.g. from treasury) when volume is below target.
+- **Monitoring and slashing**: Alerts if MM uptime drops (e.g. &lt; 99%); slashing (e.g. 10%) for sustained poor performance (e.g. &lt; 95%).
+- **Fallback**: Route to Hyper-CLAMM when minimums are not met (atomic where supported).
+- **Testing**: Matching engine tested with large order sets (e.g. &gt; 1M orders) for correctness and race-freedom.
+
+If volume or commitments fall below these levels, we **revert to Hyper-CLAMM** for that market so trading remains safe and efficient.
+
+---
+
+## Appendix: Understanding "Min MM Depth per Side"
+
+**"Min MM Depth per Side"** is the **minimum resting liquidity (in quote, usually USDC)** that market makers must keep **on each side of the book** (bids and asks separately) for the pure CLOB to be considered safe for that market.
+
+### In plain terms
+
+- **MM** = Market maker(s)—the whitelisted participants who place limit orders and keep the book usable.
+- **Depth** = Total size (quantity × price) of resting orders near the best price, typically within ±0.5% to ±2% of the oracle mid.
+- **per Side** = **Bids** and **asks** are counted separately. "$30M" means **at least $30M in bids** and **at least $30M in asks**.
+- **Min** = The **floor** below which we treat the market as unsafe and may pause CLOB, route to Hyper-CLAMM, or trigger MM incentives.
+
+### Example: ETH/USDC with $30M min depth per side
+
+- **Bid side**: At least $30M worth of USDC ready to buy ETH at prices close to the oracle (e.g. within -0.5% to -2%).
+- **Ask side**: At least $30M worth of ETH (in USDC terms) ready to sell near the oracle (e.g. within +0.5% to +2%).
+
+A rough distribution might look like:
+
+```
+Ask side ($30M total)
+$2,520 – $2,530   → $8M
+$2,510 – $2,520   → $10M
+$2,500 – $2,510   → $12M
+──────────────────────
+Total asks ≈ $30M
+
+Bid side (symmetric)
+$2,470 – $2,480   → $12M
+$2,480 – $2,490   → $10M
+$2,490 – $2,500   → $8M
+──────────────────────
+Total bids ≈ $30M
+```
+
+With this depth, a $1M market buy moves the price only ~0.1–0.3%, and large orders don’t blow the price far from the oracle.
+
+### Why it matters for MMs and traders
+
+- **For MMs**: The min gives a clear target so they know how much depth to maintain; circuit breakers and fallback protect them when the book gets stressed.
+- **For traders**: Enough depth means **tighter spreads** and **lower slippage**; if depth drops below min, spreads and slippage can spike (e.g. 1–5% instead of 0.1%), and the price can drift far from the oracle.
+
+### Example requirements by pair
+
+| Pair        | Min Depth per Side | Rationale                                      |
+|-------------|--------------------|-------------------------------------------------|
+| BTC/USDC    | $50M               | Highest volatility and institutional size       |
+| ETH/USDC    | $30M               | Very high volume, slightly less volatile        |
+| GOLD/USDC   | $10M               | Lower volatility, macro-sensitive                |
+| SILVER/USDC | $5M                | Higher relative volatility, lower volume        |
+| COPPER/USDC | $2M                | Lower baseline interest and volume               |
+
+### How it’s enforced
+
+- **Snapshot checks** (e.g. every epoch) via the CLOB keeper; depth counts only within bands of the oracle (e.g. ±1.5%).
+- **Circuit breaker** if either side stays below threshold for &gt; 5–15 minutes.
+- **Slashing / de-whitelisting** for MMs who repeatedly fail to meet committed depth.
+- **Fallback** to Hyper-CLAMM when CLOB depth stays below min for too long.
+
+**In short:** Min MM Depth per Side is the **liquidity floor per side** that MMs must maintain so the CLOB stays safe, usable, and aligned with the oracle—especially for cross-chain synthetics with no native LP pools.
