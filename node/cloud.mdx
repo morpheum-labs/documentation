@@ -1,0 +1,241 @@
+---
+title: "Cloud solutions"
+sidebarTitle: "Cloud"
+description: "Run Morpheum nodes on public cloud: when it fits, instance classes, networking, storage, and tradeoffs versus bare metal"
+---
+
+## Who this is for
+
+Teams that deploy on **hyperscalers** (AWS, GCP, Azure, etc.) or **regional cloud** providers and want a clear baseline before following a [role-specific deploy guide](/node/index).
+
+Role semantics and security expectations are the same as on metal: see [Nodes & roles](/node/index). For **hardware-style** control and long-run economics, compare with [DIY stack setup](/node/diy-stack-setup) and the [bare-metal formula](/node/diy-stack-setup#bare-metal-formula).
+
+---
+
+## When cloud is a good fit
+
+- **Fast iteration** on testnets and staging without buying hardware.
+- **Elastic capacity** for **sentry**, **full**, or **agent portal** tiers when traffic is spiky.
+- **Geographic diversity** by spinning regions without shipping servers.
+- **Operational simplicity** when your org already standardizes on a cloud’s IAM, VPC, and backup tooling.
+
+**Validators** can run in cloud **if** you meet **network isolation**, **key custody**, and **performance** bar—many operators still prefer **dedicated bare metal** for consensus for predictable CPU and NIC behavior.
+
+---
+
+## Instance shape (high level)
+
+Map to the same **CPU / RAM / NVMe** intent as the overview table:
+
+| Concern | Guidance |
+|---------|----------|
+| **CPU** | Prefer **compute-optimized** or **dedicated CPU** SKUs. Avoid **burstable** or small shared instances for validators and high-traffic RPC. |
+| **Memory** | Size **RAM** for your role (see overview); leave headroom for OS page cache and peers. |
+| **Disk** | Use **local NVMe** or high-IOPS block storage where the provider offers it; chain databases are **random I/O heavy**. Treat network-attached-only setups as higher risk for lag under load. |
+| **Network** | Prefer **10 Gbps-class** (or provider equivalent) for nodes that serve **public RPC** or high peer counts. |
+
+Exact instance names change by vendor—translate the **bare-metal formula** targets into your cloud’s catalog.
+
+---
+
+## Networking and security
+
+- **Private subnets** for **validators**; **no public RPC** on those hosts. Use **private connectivity** (VPC peering, VPN, or private endpoints) to **sentries** and ops tooling.
+- **Security groups / firewalls**: Default deny; allow only P2P, RPC, or management ports required for that **role**.
+- **Load balancers** (optional): In front of **sentry** or **full** nodes for TLS termination and health checks—keep **validator** keys and consensus traffic off public LBs.
+- **Regions**: If you operate in **Asia Pacific** or **North America**, pick regions with **low latency** to your peers and users; validate **routing**, not just map distance.
+
+---
+
+## Storage and backups
+
+- **Snapshots** of volumes are convenient but **not** a substitute for **key backup** and tested **restore** procedures.
+- Separate **OS boot** from **chain data** volumes when possible—simpler resize and snapshot policies.
+- **Archive** nodes need **large, durable** object or block tiers; **data transfer** to clients can dominate operational planning at scale.
+
+---
+
+## Recommended setups (GCP, AWS, Azure, Alibaba Cloud, DigitalOcean, Akamai Cloud, Hostinger VPS)
+
+The tables below map **Morpheum roles** to **representative instance families** on **hyperscalers**, **regional clouds**, and **VPS** catalogs. **Align vCPU, RAM, and disk** with the [bare-metal formula](/node/diy-stack-setup#bare-metal-formula); exact SKUs and quotas change—confirm in each vendor’s console.
+
+**List prices and discounts change often**—do not treat any third-party estimate as authoritative. Use each provider’s **pricing calculator** (and your enterprise agreement if applicable) before you commit.
+
+### Reference fleet size (example)
+
+A **reasonable** reference network is on the order of **11 nodes**: **3 validators**, **5 sentries**, **2 full nodes**, **1 AgentPortal**—plus an **archive** tier when you need deep history. That layout is **illustrative** of a balanced production-style topology. **Independent** operators **do not** need to follow this **exact** configuration: adjust **role** counts, **redundancy**, and **regions** to your **security**, **capacity**, and **compliance** needs.
+
+---
+
+### Google Cloud Platform (GCP)
+
+**Regions (Asia Pacific):** e.g. `asia-southeast1` (Singapore), `asia-northeast1` (Tokyo)—pick based on **latency** to peers and users.
+
+**Compute:** **Tau T2A** (`t2a-standard-*`) **ARM** instances are often a good cost-efficiency default where your binary and dependencies support **aarch64**. If you need x86-only stacks, use a comparable **N4** or **N2/N2D** shape as a fallback.
+
+| Role | Target resources (illustrative) | Instance shape | Commitment / lifecycle strategy |
+|------|-----------------------------------|----------------|--------------------------------|
+| **Validator** | ~32 vCPU, ~128 GB RAM, ~1 TB fast disk | `t2a-standard-32` (or `n4-standard-32` if x86 required) | **Committed use discount (CUD)** on vCPU + memory—validators need **24/7** uptime; **avoid Spot** for consensus. |
+| **Sentry** | ~16 vCPU, ~64 GB RAM, ~0.5 TB | `t2a-standard-16` | **Spot** can work if you run **multiple sentries** and handle preemption; otherwise **CUD** for predictable cost. |
+| **Full** | ~16 vCPU, ~64 GB RAM, ~1 TB | `t2a-standard-16` | **Spot** often acceptable with **redundant** full nodes; **CUD** if you want stability over lowest price. |
+| **AgentPortal** | ~8 vCPU, ~32 GB RAM, ~0.5 TB + cache | `t2a-standard-8` | **Spot** friendly when **horizontally scaled**; pair with health checks and fast restart. |
+| **Archive** (optional) | High core count, **large** RAM, **very large** disk | Large **memory-optimized** or custom machine types (e.g. high-core **N4** class) | **CUD** typical; **Spot** rarely appropriate due to state size and long sync times. |
+
+**Disk:** Budget **Persistent Disk** (`pd-balanced`, `pd-ssd`, or **hyperdisk** where available) **separately** from the VM—size for IOPS and capacity; archive tiers add **orders of magnitude** more storage than other roles.
+
+**Network:** Private connectivity for **validators**; public RPC on **sentry** / **full** / **AgentPortal** as designed—add **Cloud Armor** or equivalent if you need edge protection.
+
+---
+
+### Amazon Web Services (AWS)
+
+**Regions (Asia Pacific):** e.g. `ap-southeast-1` (Singapore), `ap-northeast-1` (Tokyo)—match your peering and compliance needs.
+
+**Compute:** **Graviton (ARM)** **7th generation** families align well with high-throughput chain workloads: **memory-optimized** `r7g` for heavy state, **general** `m7g`, **compute** `c7g` when CPU-bound.
+
+| Role | Instance type (example) | Notes |
+|------|-------------------------|-------|
+| **Validator** | `r7g.8xlarge` (32 vCPU, 256 GB RAM) — *memory higher than minimum spec; size down if your profile fits* | Use **Savings Plans** or **Reserved Instances** for steady production; **no Spot** for consensus. |
+| **Sentry** | `m7g.4xlarge` or `c7g.4xlarge` (16 vCPU, 64 GB) | **Spot** or **Savings Plans** depending on tolerance for interruption across replicas. |
+| **Full** | `m7g.4xlarge` (16 vCPU, 64 GB) | Same pattern as sentry; redundant pairs tolerate Spot if automated. |
+| **AgentPortal** | `m7g.2xlarge` (8 vCPU, 32 GB) | Scale out with more instances if load grows. |
+
+**Disk:** **EBS** (`gp3`, `io2` Block Express, or **instance store** where available) is **quoted separately** from EC2—model IOPS and throughput for your database layout.
+
+**Network:** **Security groups** and **private subnets** for validators; **Shield** and **ALB** optional in front of public-facing RPC layers.
+
+---
+
+### Microsoft Azure
+
+**Regions (Asia Pacific):** e.g. **Southeast Asia** (Singapore), **Japan East** (Tokyo), **Korea Central** (Seoul)—pick based on **latency**, **compliance**, and **data residency**; **Europe**, **North America**, **South America**, **Africa**, and **Middle East** options exist under their respective **region** names in the **Azure** portal. Run **routing** tests against your **peer** and **user** map—map distance alone is not enough.
+
+**Compute:** **Das v6** (and related **D/Eas v6**) **AMD EPYC** (Genoa-class) **general-purpose** and **memory-optimized** VMs are a common fit for **blockchain-style** workloads: **CLOB matching**, **DAG** consensus, and **low-latency** gateways. Example **sizes** **per** **role**:
+
+| Role | Instance type (example) | Notes |
+|------|-------------------------|-------|
+| **Validator** | **D32as v6** (32 vCPU, 128 GiB) or **E32as v6** if you want more **headroom** on **RAM** | **No Spot** for production consensus; use **Reserved Instances** or **Azure savings plan for compute** for steady **24/7** nodes. |
+| **Sentry** | **D16as v6** (16 vCPU, 64 GiB) | **Spot** or **savings plans** where you tolerate **eviction** with **N+1** **sentries**. |
+| **Full** | **D16as v6** (16 vCPU, 64 GiB) | Same shape as **sentry** for **ops** consistency; redundant pairs can use **Spot** if automated. |
+| **AgentPortal** | **D8as v6** (8 vCPU, 32 GiB) | Scale out with more VMs if **gateway** load grows. |
+
+**Commitment / lifecycle:** **Multi-year** (including **3-year**) **Reserved VM Instances** suit **fixed** sizes like **validators**; **Azure savings plan for compute** can be better if you expect to **change** **VM** **series** or **sizes** over time. **Spot** **VMs** can sit behind **sentries**, **full** nodes, and **AgentPortal** when you have **redundancy** and **fast** **failover**. Compare **RI** vs **savings plan** scope and **regional** SKU availability in the **Azure** portal and **pricing** calculator—vendor **catalogs** and **offers** change.
+
+**Disk:** **Managed Disks**—**Premium SSD v2** or **Ultra Disk** when you need strong **IOPS** and **throughput** for **chain** state; separate **OS** and **data** volumes where it simplifies **snapshots** and **resize**.
+
+**Network:** **Virtual Network** (**VNet**), **network security groups**, and **private** subnets for **validators**; **public** **load balancing** (e.g. **Azure Load Balancer**) optional in front of **sentry** / **RPC** tiers; **Azure DDoS Protection** where **internet-facing** **attack** surface warrants it.
+
+**Observability and platform:** **Azure Monitor** for **metrics** and **alerts**; optional integration with other **Azure** services (e.g. **AI** / **application** stacks) if your **AgentPortal** or **KYA** roadmap grows on **Microsoft**’s ecosystem.
+
+---
+
+### Alibaba Cloud (Aliyun ECS)
+
+**Regions (Asia Pacific):** e.g. Singapore, Tokyo, or Jakarta—pick based on **latency**, **compliance**, and **data residency**; confirm **Alibaba Cloud** availability and **ECS** families in the console for your geography.
+
+**Compute:** **General-purpose** `ecs.g9i` / `ecs.g8i` (and similar generations) map cleanly to **vCPU / GiB** targets; use **compute-optimized** (`c*`) or **memory-optimized** (`r*`) variants when the workload skews CPU or RAM.
+
+| Role | Instance example | Notes |
+|------|------------------|-------|
+| **Validator** | `ecs.g9i.8xlarge` (32 vCPU, 128 GiB) or memory-optimized equivalent | Prefer **reserved** capacity or **savings plans** for long-lived consensus nodes. |
+| **Sentry** | `ecs.g9i.4xlarge` (16 vCPU, 64 GiB) | Mix **pay-as-you-go** and committed capacity depending on burst vs baseline. |
+| **Full** | `ecs.g9i.4xlarge` | Same family as sentry for operational consistency. |
+| **AgentPortal** | `ecs.g9i.2xlarge` (8 vCPU, 32 GiB) | Add instances for HA as needed. |
+
+**Disk:** **ESSD** and enhanced SSD tiers—size for random I/O; **archive** nodes need **very large** cloud disks or object-backed patterns.
+
+**Network:** **VPC**, **security groups**, and **Anti-DDoS** options for internet-facing tiers; **private** networking between validators and sentries.
+
+---
+
+### DigitalOcean
+
+**Regions:** **Asia Pacific** (e.g. Singapore `SGP1`, Sydney `SYD1`, Bangalore `BLR1`), **Europe** (e.g. Amsterdam, Frankfurt, London), **North America** (e.g. New York, San Francisco, Toronto), and others—choose for **latency** to peers and users and for **data residency** requirements. DigitalOcean’s region list is narrower than the largest hyperscalers in some geographies; if you need **Japan**, **Korea**, **South America**, **Africa**, or **Middle East** presence, compare the live **region** catalog and **routing** tests against your **peer** and **user** map.
+
+**Compute:** **CPU-Optimized Droplets** use **dedicated vCPUs** with a **2:1 RAM-to-vCPU** ratio—well suited to **consensus**, **CLOB matching**, and **low-latency** workloads. **Premium Intel** variants often improve **network** and **NVMe SSD** behavior; **Regular** CPU-Optimized tiers remain an option when you want a simpler catalog tradeoff—confirm current **Droplet** types in the **DigitalOcean** control panel or API.
+
+**Limits:** The largest **standard** **CPU-Optimized** profile may cap **RAM** below the highest **validator** targets in the bare-metal formula. Mitigations: run **pruned** state on a **CPU-Optimized** Droplet that fits your profile; use **General Purpose** or **Memory-Optimized** Droplets when you need more **RAM** per host; or engage **DigitalOcean** sales for **larger** or **custom** sizes. Billing is **flexible** (usage-based with a monthly cap model); **enterprise** or **volume** arrangements may be available through **sales**—there is no standard **multi-year reserved** SKU comparable to some hyperscalers.
+
+| Role | Droplet family (example) | Notes |
+|------|--------------------------|-------|
+| **Validator** | CPU-Optimized **32 vCPU** (or **Memory-Optimized** / **General Purpose** if you need more RAM than the CPU-Optimized line offers) | **Always-on**; **no** interruptible workloads for consensus. |
+| **Sentry** | CPU-Optimized **16 vCPU** | **Public** RPC and peers; **Premium** networking helps high-bandwidth edges. |
+| **Full** | CPU-Optimized **16 vCPU** | Align with sentry **ops** patterns; run **seed** mode on one node if required. |
+| **AgentPortal** | CPU-Optimized **8 vCPU** (or smaller to start) | **Gateway** tier; scale out with more Droplets if load grows. |
+
+**Disk:** **Included** SSD/NVMe on Droplets; attach **Block Storage** when you need **extra** capacity for **pruning**, **history**, or **archive-like** retention—size for **random I/O** and growth.
+
+**Network:** **VPC**-style **private networking** for **validator**–**sentry** peering; **public** interfaces for **RPC** and **peers** as designed. **Floating IPs**, **Load Balancers**, and **firewall** rules are optional—see **DigitalOcean** networking documentation.
+
+**When it fits:** Straightforward **API** and **CLI**, **fast** provisioning, and **clear** private networking for **validator** + **sentry** topologies. **Tradeoffs:** **RAM** ceilings on **CPU-Optimized** SKUs may push you to **other** Droplet families or **sales-led** sizing; **region** footprint is smaller than AWS/GCP/Azure in some parts of **Asia Pacific**, **Middle East**, or **Africa**; **long-run committed** discount programs differ from hyperscaler **CUD** / **Savings Plans**—compare with [DIY stack setup](/node/diy-stack-setup) and official calculators when you optimize for **economics** or **dedicated metal**.
+
+---
+
+### Akamai Cloud (formerly Linode)
+
+**Product:** **Akamai Cloud** (successor to **Linode** under **Akamai**) offers **Linux** **VMs** with **bundled** **CPU**, **RAM**, **storage**, and **transfer** in plan tiers—**hourly** billing with **monthly** caps on many SKUs, and **no** mandatory **multi-year** **commit** like hyperscaler **RIs** (confirm current **billing** and **enterprise** options in the console). Plan families include **Shared CPU**, **Dedicated CPU**, and **High Memory** lines; **Dedicated** plans reduce **noisy-neighbor** risk for **consensus**-sensitive work.
+
+**Regions (Asia Pacific):** Strong coverage includes **Singapore**, **Tokyo**, **Osaka**, and **Mumbai**—pick using **latency** tests to peers and users; **Europe**, **North America**, **South America**, **Africa**, and **Middle East** regions exist under **Akamai**’s **datacenter** list. There is **no** **bare-metal** **product** in the same catalog—everything is **virtualized**.
+
+**Limits:** Published **maximum** **VM** sizes vary by **generation** (e.g. **Dedicated** and **High Memory** / **G8**-class tiers); a **single** instance may **not** match the [bare-metal formula](/node/diy-stack-setup#bare-metal-formula) **validator** target of **~32 vCPU** and **~128 GiB RAM** on **one** host. Common mitigations: choose the **largest** **High Memory** or **Dedicated** SKU that fits, run **pruned** state if acceptable, **split** **RAM**-heavy work across **multiple** **VMs** (**not** a drop-in for all **BFT** designs), or move **validators** to **hyperscalers** / **dedicated servers**. **Sentry** and **full** nodes often map to **mid** **Dedicated** tiers when **vCPU** / **GiB** align; **AgentPortal** typically fits **smaller** **Dedicated** or **Premium**-class plans.
+
+| Role | Plan type (example) | Notes |
+|------|----------------------|-------|
+| **Validator** | **Dedicated** or **High Memory** / **G8** **Dedicated** (largest sizes in catalog) | May require **compromise** on **per-VM** **RAM** or **extra** **VMs** versus the formula; **avoid** **Shared CPU** for **production** **consensus** unless **load** is proven low. |
+| **Sentry** | **Dedicated** (e.g. **32–64 GiB** class—confirm **vCPU** / **RAM** pair) | **Public** **RPC** and **peers**; pair with **Cloud Firewall** and **private** **VPC** paths to **validators**. |
+| **Full** | Same **Dedicated** band as **sentry** where specs match | **Ops** / **indexing**; **seed** mode on one node if your deployment uses it. |
+| **AgentPortal** | **Dedicated** **16 GiB** tier or **Premium** where available | **Gateway** workload; scale **horizontally** if needed. |
+
+**Disk:** **NVMe** **Block Storage** and **Object Storage** are available **add-ons**—size for **chain** **state** and **snapshots**; **backups** are often a **paid** **feature**.
+
+**Network:** **VPC**-style **private networking**, **Cloud Firewall**, and **public** **interfaces** for **RPC** as designed. If you already use **Akamai**’s **CDN** / **edge** stack, you can align **AgentPortal** or **API** **traffic** with **edge** patterns—optional and **architecture**-dependent.
+
+**When it fits:** Teams that want **Linode**-style **UX** under **Akamai**’s **network**, **predictable** **plan** **bundles**, and **strong** **Asia Pacific** **regions** for **sentries**, **full** nodes, and **AgentPortal**. **When it is harder:** **Validators** that must land **full** **formula** **RAM** on **one** **metal-equivalent** host—compare [DIY stack setup](/node/diy-stack-setup) or **hyperscaler** **memory-optimized** **SKUs**.
+
+---
+
+### Hostinger VPS
+
+**Product:** **Hostinger** sells **KVM-based VPS** plans with **dedicated** **vCPU**, **RAM**, and **NVMe** storage on **Linux** templates—managed through **Hostinger**’s control panel (**hPanel**), with **root** access and optional **snapshots**, **backups**, and **dedicated IP** add-ons. **Bandwidth** allowances are typically generous on published tiers; confirm **egress** and **fair-use** terms in the current **ToS**.
+
+**Regions:** **Datacenter** choice is **limited** compared with hyperscalers—often **Europe** and **North America**, with **some** **Asia Pacific** or **India**-adjacent options depending on **catalog**. If you need **Japan**, **Korea**, **South America**, **Africa**, or **Middle East** presence, check whether **Hostinger** lists a **region** there or plan for **latency** via **routing** from the nearest offered **location**.
+
+**Catalog limits (verify live specs):** Upper **KVM** tiers (e.g. **KVM 8** in many catalogs) have capped around **8 vCPU** and **32 GiB RAM** per **VM**, with **hundreds of GB** of **NVMe** and large **traffic** bundles. Smaller steps (**KVM 1**–**KVM 4**) scale **vCPU**, **RAM**, and **disk** down for **dev** and **light** workloads. **Maximums** change—always confirm in **Hostinger**’s **VPS** page before you design a fleet.
+
+**Fit vs. the [bare-metal formula](/node/diy-stack-setup#bare-metal-formula) role targets:** The formula targets **~32 vCPU / ~128 GiB** for **validators** and **~16 vCPU / ~64 GiB** for **sentries** and **full** nodes on **one host** each. A **single** **Hostinger** **VPS** at typical **KVM** caps **cannot** hold those **validator** or **sentry**/**full** shapes on **one** **VM**. The **AgentPortal** tier (**~8 vCPU / ~32 GiB**) may align with a **top** **KVM** plan when your workload fits. **Do not** assume a **validator** or **high-traffic** **sentry** can run **without** changing **topology** or **provider**.
+
+**Clustering workaround (usually a poor fit for consensus):** In theory you could **aggregate** many **small** **VPS** instances **per** **role** (e.g. several **KVM 8** hosts) to **approximate** **aggregate** **CPU** and **RAM**, but that adds **cross-host** **dependency**, **network** **jitter**, and **operational** **complexity**—and it **breaks** the **clean** **one-node-per-role** **isolation** model most **BFT** networks assume. **Do not** treat this as a **drop-in** substitute for **production** **validators** on **dedicated** **high-spec** machines.
+
+| Role | Hostinger VPS (example) | Notes |
+|------|-------------------------|-------|
+| **Validator** | Not typically achievable on **one** **VPS** at common **KVM** caps | Prefer **hyperscaler**, **regional cloud**, or **bare metal** from [DIY stack setup](/node/diy-stack-setup) for **production** **validators**. |
+| **Sentry** | Not typically achievable on **one** **VPS** at **16 vCPU / 64 GiB** targets | Same as above for **RPC**-heavy **sentries**. |
+| **Full** | Not typically achievable on **one** **VPS** at **16 vCPU / 64 GiB** targets | **Light** **indexing** or **experiments** on smaller **KVM** tiers only if **load** allows. |
+| **AgentPortal** | **KVM 8** (or equivalent **top** tier) when **8 vCPU / 32 GiB** matches | **Reasonable** candidate for **gateway** **prototypes** if **latency** and **region** suit. |
+
+**When it fits:** **Learning** **Morpheum** **CLI** flows (`init`, `run`), **staging**, **non-critical** **AgentPortal** or **light** **full** nodes, and **teams** that **prioritize** a **simple** **VPS** **panel** over **maximum** **per-VM** **scale**. **When it does not:** **Production** **multi-validator** **BFT** networks that need **predictable** **CPU**, **NIC**, and **RAM** on **one** **host** per **role**—use a **catalog** that offers **single-instance** **sizes** aligned with the [bare-metal formula](/node/diy-stack-setup#bare-metal-formula) or **dedicated** **servers**.
+
+---
+
+### Operational patterns (all clouds)
+
+- **Validators:** **Always-on**, **no preemptible/Spot** for production consensus; **private** network path; **committed** capacity where it matches your forecast.
+- **Sentries, full nodes, AgentPortal:** **Horizontally scaled**; **Spot/preemptible** often viable **if** you already run **N+1** redundancy and fast failover.
+- **Archive:** **Large state** and **long sync** times—treat interruptions as expensive; prefer **stable** capacity and **durable** block tiers.
+
+---
+
+## Pricing and calculators
+
+Vendor **rate cards** and **regional** multipliers change frequently. For any production decision, run each provider’s official **pricing calculator** or **plan** page (e.g. **GCP**, **AWS**, **Azure**, **Alibaba Cloud**, **DigitalOcean**, **Akamai Cloud**, **Hostinger**) with your exact **region**, **disk**, **data transfer**, and **commitment** options.
+
+For **bare-metal** comparison points (dedicated servers, colocation), see [DIY stack setup](/node/diy-stack-setup) and the [bare-metal formula](/node/diy-stack-setup#bare-metal-formula).
+
+---
+
+## Related
+
+- [Nodes & roles](/node/index) — Roles and security expectations.
+- [DIY stack setup](/node/diy-stack-setup) — Bare-metal formula, self-build, and colocation path.
+- [Node CLI](/node/cli) — `init` and `run`.
+- [Deploy a validator](/node/deploy-validator), [Deploy a sentry](/node/deploy-sentry), [Deploy a full node](/node/deploy-full), [Deploy an archive node](/node/deploy-archive), [Deploy an agent portal](/node/deploy-agent-portal) — Deploy by role after the environment is ready.

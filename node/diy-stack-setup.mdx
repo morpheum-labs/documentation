@@ -1,0 +1,104 @@
+---
+title: "DIY stack setup"
+sidebarTitle: "DIY stack"
+description: "Plan and operate a self-built or colocated bare-metal stack for Morpheum nodes: hardware, network, OS baseline, and handoff to role deploys"
+---
+
+## Who this is for
+
+Operators who want **full control** over hardware—**self-build**, **custom integrator builds**, or **dedicated servers in colocation**—before following a [role-specific deploy guide](/node/index).
+
+The **[bare metal formula](#bare-metal-formula)** below covers CPU, RAM, storage, motherboard, networking, and cost tradeoffs. The rest of this page covers **how to turn that hardware into a production-ready host**.
+
+---
+
+## Bare metal formula
+
+Guidance for **bare-metal** sizing when you are not using cloud instances. **AMD** is the default recommendation across roles for fleet consistency and for strong core count and I/O at scale.
+
+| Role | CPU recommendation | RAM | Storage | Notes / why AMD |
+|------|-------------------|-----|---------|-----------------|
+| **Validator** | EPYC 9454P / 9554 / Turin 32–64 cores (or higher) | 128–256 GB ECC DDR5 | 1–2 TB enterprise NVMe Gen4/5 (RAID-1 preferred) | Highest priority. Needs max cores and high clock for CLOB + consensus. AMD wins here decisively. |
+| **Sentry** | EPYC 32–48 cores (or Ryzen 9 7950X/9950X for lighter builds) | 64–128 GB ECC | 0.5–1 TB NVMe | High network and I/O. AMD's I/O advantages shine for public RPC and rate-limiting. |
+| **Full** | Same as Sentry (32+ cores) | 64–128 GB ECC | 1 TB NVMe (pruned) | Internal indexing and bots—benefits from parallelism. |
+| **AgentPortal** | 16–32 cores (Ryzen 9 or entry EPYC) | 32–64 GB | 0.5 TB NVMe + AI cache | Lower spec; AMD still preferred for consistency across the fleet. |
+
+### Motherboard / platform
+
+Use **server-grade** boards with EPYC support (for example Supermicro, ASUS, Gigabyte)—enough **PCIe lanes** for multiple NVMe drives plus **10 / 25 / 100 Gbps** NICs.
+
+### Networking
+
+Target **10 Gbps+ symmetric** bandwidth. **Validators** should use **private peering** where possible. If you operate in **Asia Pacific** or **North America**, prefer providers with **strong regional routing** and peering.
+
+### Power & cooling
+
+EPYC is efficient relative to its throughput, but still plan for **airflow** and **PSU headroom**—whether in colocation or a home rack.
+
+### Cost efficiency: DIY / bare-metal vs cloud
+
+- **DIY or colocation** (self-build or a custom order): Often **40–60% cheaper** over the long run than cloud on a **3+ year** horizon, and you control hardware exactly.
+- **Hetzner AX series** (widely used for blockchain): **AX162-R/S** (EPYC 9454P, 128–256 GB RAM, dual NVMe) is often quoted around **€199–282 / month** after Hetzner’s **April 2026** price adjustment—strong value and a common validator choice.
+- **Other providers in Asia Pacific or North America** (OVH, Singapore / Tokyo / US regions): AMD EPYC dedicated servers often land roughly **$150–500 / month** depending on cores, RAM, and storage.
+- **Self-build in worldwide colocation**: Viable, but budget for **power**, **import duties**, and **on-site support** overhead.
+
+---
+
+## Paths: build, order, or colocate
+
+| Path | Best when |
+|------|-----------|
+| **Parts + self-assembly** | You want exact SKU control and can handle RMA and burn-in yourself. |
+| **Integrator / white-box server** | You need a single invoice, warranty, and rack-ready chassis without sourcing every component. |
+| **Colocation + your hardware** | You own the box and pay for power, cross-connects, and remote hands in a facility. |
+| **Dedicated rental** (Hetzner AX, OVH, etc.) | You want bare-metal economics without owning metal—still “DIY” at the software and topology layer. |
+
+Pick one **primary** network role per machine (validator, sentry, full, archive, agent portal) and size from the [bare metal formula](#bare-metal-formula) table above; **do not** overload one host with unrelated public services.
+
+---
+
+## Physical and power
+
+- **Chassis airflow**: Front-to-back in racks; no blocked intakes. EPYC systems need predictable **cooling headroom** under sustained load.
+- **PSU**: Prefer **redundant** supplies for production; size for **peak CPU + all NVMe + NIC** draw, not idle.
+- **Storage layout**: Mirror or RAID-appropriate layouts for validator state per your risk model; keep **OS** and **chain data** on separate volumes when possible for cleaner upgrades and snapshots.
+
+---
+
+## Network stack
+
+- **Throughput**: Aim for **10 Gbps+** symmetric on the paths that matter (often **sentry** and **full** nodes). Validators rely on **stable, low-jitter** private links more than public bandwidth.
+- **Segmentation**: Separate **management** (SSH, IPMI) from **P2P / RPC** traffic with VLANs or physical interfaces where feasible.
+- **Firewalls**: Default-deny inbound; allow only what each role requires. Validators stay **off** public RPC—see [Deploy a validator](/node/deploy-validator).
+
+If you operate in **Asia Pacific** or **North America**, validate **latency and routing** to your peers and sentries before cutover.
+
+---
+
+## OS and host baseline
+
+Use a **supported, long-term** Linux distribution your team can patch quickly. Typical baseline:
+
+- **Kernel** new enough for your NIC and NVMe drivers; enable **I/O scheduler** and **mount options** appropriate for SSD/NVMe (noatime where safe, etc.).
+- **Time sync**: **Chrony** or **NTP** to stable stratum sources—consensus and log correlation depend on correct time.
+- **SSH**: Key-based auth, **no root password login**, optional **fail2ban** or equivalent on management interfaces.
+- **Updates**: Unattended security updates **or** a disciplined manual cadence; test on a **non-validator** host first.
+
+Install the Morpheum CLI and dependencies per release notes before [initializing](/node/cli) the node for the chosen role.
+
+---
+
+## Observability and operations
+
+- **Metrics**: CPU, RAM, disk latency, **network drops**, and process health for the node binary.
+- **Logs**: Centralize or rotate locally; keep **disk** from filling on long runs.
+- **Backups**: Validator keys and config off-host per policy; practice **restore** on a test machine.
+
+---
+
+## Related
+
+- [Nodes & roles](/node/index) — Role choice and overview.
+- [Cloud](/node/cloud) — Hyperscalers and regional cloud when you are not on owned metal.
+- [Node CLI](/node/cli) — `init` and `run`.
+- [Deploy a validator](/node/deploy-validator), [Deploy a sentry](/node/deploy-sentry), [Deploy a full node](/node/deploy-full), [Deploy an archive node](/node/deploy-archive), [Deploy an agent portal](/node/deploy-agent-portal) — Role-specific steps after the host is ready.

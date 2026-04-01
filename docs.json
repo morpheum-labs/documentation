@@ -51,7 +51,9 @@
           {
             "group": "Overview",
             "pages": [
-              "node/index"
+              "node/index",
+              "node/diy-stack-setup",
+              "node/cloud"
             ]
           },
           {
