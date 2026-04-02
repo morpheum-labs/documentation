@@ -1,0 +1,5 @@
+# Base URL must match your live Mintlify domain (same as sitemap.xml).
+User-agent: *
+Allow: /
+
+Sitemap: https://docs.morpheum.io/sitemap.xml
