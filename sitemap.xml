@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Base URL must match your live Mintlify domain (custom or *.mintlify.app). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://docs.morpheum.io/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://docs.morpheum.io/quickstart</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://docs.morpheum.io/mcp</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/dex-cli</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/x402</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/x402/cross-chain</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/signing</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/signing/ethereum-signature</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/signing/solana-signature</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/signing/bitcoin-signature</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/signing/morpheum-signature</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/signing/quantum-threat</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/agent-wallet</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/mwvm</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/sdk</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://docs.morpheum.io/node/diy-stack-setup</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/cloud</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/cli</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/deploy-validator</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/deploy-full</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/deploy-sentry</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/deploy-archive</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/node/deploy-agent-portal</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/introduction</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/clob</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/bucket</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/suitable-use-cases-clamm</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/maximum-sustainable-volume</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/reclamm-glide-mechanics</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/reclamm-slippage-impact-analysis</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/engines/curves/bonding-curve</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/introduction</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/safety-thresholds-clob-spot-markets</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/safety-requirement-spot-market-volume</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/minimum-market-makers-requirement</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/mathematical-model-minimum-market-makers</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/hyperclamm-listing</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/hyperclamm-use-cases</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://docs.morpheum.io/listings/hyperclamm-volume</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+</urlset>
